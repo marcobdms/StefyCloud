@@ -11,29 +11,51 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
   const [error, setError] = useState("");
+  const [debugInfo, setDebugInfo] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
+    setDebugInfo("");
     setLoading(true);
 
+    const loginUrl = `${API_URL}/auth/login`;
+    console.log("[Login] Intentando conectar a:", loginUrl);
+    setDebugInfo(`Conectando a: ${loginUrl}`);
+
     try {
-      const res = await fetch(`${API_URL}/auth/login`, {
+      const res = await fetch(loginUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",  // Necesario para guardar la cookie
+        credentials: "include",
         body: JSON.stringify({ password }),
       });
 
+      console.log("[Login] Respuesta HTTP:", res.status, res.statusText);
+      setDebugInfo(`HTTP ${res.status} ${res.statusText}`);
+
       if (res.ok) {
+        console.log("[Login] OK — redirigiendo a /dashboard");
         router.replace("/dashboard");
       } else {
+        let detail = "Error desconocido";
+        try {
+          const body = await res.json();
+          detail = body.detail ?? JSON.stringify(body);
+        } catch {
+          detail = await res.text();
+        }
+        console.error("[Login] Error del servidor:", detail);
+        setDebugInfo(`Error ${res.status}: ${detail}`);
         setError("Contraseña incorrecta. Inténtalo de nuevo.");
         setPassword("");
       }
-    } catch {
-      setError("No se pudo conectar con el servidor.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("[Login] Error de red/CORS:", msg);
+      setDebugInfo(`Error de red: ${msg}`);
+      setError(`No se pudo conectar: ${msg}`);
     } finally {
       setLoading(false);
     }
@@ -78,6 +100,13 @@ export default function LoginPage() {
           <p className="text-[13px] text-[#FF3B30] text-center -mt-1">{error}</p>
         )}
 
+        {/* Debug info — visible en pantalla para diagnosticar desde el móvil */}
+        {debugInfo && (
+          <p className="text-[11px] text-[#8e8e93] text-center font-mono break-all -mt-1">
+            {debugInfo}
+          </p>
+        )}
+
         <button
           type="submit"
           disabled={!password || loading}
@@ -85,6 +114,11 @@ export default function LoginPage() {
         >
           {loading ? "Entrando..." : "Entrar"}
         </button>
+
+        {/* URL de la API en pantalla para confirmar que es la correcta */}
+        <p className="text-[10px] text-[#c7c7cc] text-center font-mono">
+          API: {API_URL}
+        </p>
       </form>
     </div>
   );
