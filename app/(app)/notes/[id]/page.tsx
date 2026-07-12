@@ -4,6 +4,16 @@ import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { useNotes } from "@/hooks/useNotes";
+import MarqueeText from "@/components/common/MarqueeText";
+
+function formatDate(iso: string) {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("es-ES", {
+    day: "numeric", month: "long", year: "numeric",
+    hour: "2-digit", minute: "2-digit",
+  });
+}
 
 export default function NoteEditorPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -16,8 +26,8 @@ export default function NoteEditorPage({ params }: { params: Promise<{ id: strin
   const [content, setContent] = useState("");
   const [saved, setSaved] = useState(true);
   const [initialized, setInitialized] = useState(false);
+  const [titleFocused, setTitleFocused] = useState(false);
 
-  // Initialize local state once note loads
   useEffect(() => {
     if (loaded && note && !initialized) {
       setTitle(note.title);
@@ -70,33 +80,35 @@ export default function NoteEditorPage({ params }: { params: Promise<{ id: strin
         </div>
       </div>
 
-      {/* Title con fade en los bordes cuando el texto desborda */}
-      <div
-        className="mb-3 w-full"
-        style={{ maskImage: "linear-gradient(to right, black 85%, transparent 100%)" }}
-      >
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Título"
-          className="text-2xl font-bold text-[#1d1d1f] bg-transparent border-none outline-none w-full placeholder:text-[#c7c7cc]"
-          autoFocus={!title}
-        />
+      {/* Título: marquee cuando está quieto, input normal cuando está enfocado */}
+      <div className="mb-3 w-full">
+        {titleFocused ? (
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            onBlur={() => setTitleFocused(false)}
+            placeholder="Título"
+            autoFocus
+            className="text-2xl font-bold text-[#1d1d1f] bg-transparent border-none outline-none w-full placeholder:text-[#c7c7cc]"
+          />
+        ) : (
+          <div
+            onClick={() => setTitleFocused(true)}
+            className="cursor-text"
+          >
+            <MarqueeText
+              text={title || "Sin título"}
+              className={`text-2xl font-bold ${title ? "text-[#1d1d1f]" : "text-[#c7c7cc]"}`}
+            />
+          </div>
+        )}
       </div>
 
-      {/* Date */}
-      <p className="text-xs text-[#6e6e73] mb-4">
-        {new Date(note.updatedAt).toLocaleDateString("es-ES", {
-          day: "numeric",
-          month: "long",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        })}
-      </p>
+      {/* Fecha */}
+      <p className="text-xs text-[#6e6e73] mb-4">{formatDate(note.updatedAt)}</p>
 
-      {/* Content */}
+      {/* Contenido */}
       <textarea
         value={content}
         onChange={(e) => setContent(e.target.value)}
