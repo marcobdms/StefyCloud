@@ -38,9 +38,12 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # Dependencia de autenticación
 def require_auth(request: Request):
-    token = request.cookies.get("access_token")
-    if not token or not decode_token(token):
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="No autenticado")
+    token = auth_header.removeprefix("Bearer ")
+    if not decode_token(token):
+        raise HTTPException(status_code=401, detail="Token inválido o expirado")
 
 # Routers
 app.include_router(auth_router.router)
@@ -56,8 +59,11 @@ def read_root():
 
 @app.get("/api/me")
 def me(request: Request):
-    token = request.cookies.get("access_token")
-    if not token or not decode_token(token):
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="No autenticado")
+    token = auth_header.removeprefix("Bearer ")
+    if not decode_token(token):
         raise HTTPException(status_code=401, detail="No autenticado")
     return {"ok": True}
 

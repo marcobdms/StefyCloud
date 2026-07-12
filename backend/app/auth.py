@@ -1,18 +1,14 @@
 import os
 from datetime import datetime, timedelta
 from jose import jwt
-from passlib.context import CryptContext
 
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "change-me-in-production-please")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_DAYS = 15
 
-APP_PASSWORD = os.getenv("APP_PASSWORD", "stefany123")  # Cámbiala en Coolify
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+APP_PASSWORD = os.getenv("APP_PASSWORD", "stefany123")
 
 def verify_password(plain: str) -> bool:
-    """Compara la contraseña enviada con APP_PASSWORD."""
     return plain == APP_PASSWORD
 
 def create_access_token() -> str:

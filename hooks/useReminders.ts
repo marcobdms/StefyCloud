@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import type { Reminder, ReminderGroup, Priority } from "@/types";
+import { getAuthHeaders } from "@/lib/auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-const OPTS = { credentials: "include" as RequestCredentials };
 
 function getGroup(dateStr: string): ReminderGroup {
   const today = new Date();
@@ -31,14 +31,10 @@ export function useReminders() {
 
   const fetchReminders = async () => {
     try {
-      const res = await fetch(`${API_URL}/reminders/`, OPTS);
+      const res = await fetch(`${API_URL}/reminders/`, { headers: getAuthHeaders() });
       if (res.ok) {
         const data = await res.json();
-        // El backend devuelve group_name, la UI espera group
-        const mapped = data.map((r: any) => ({
-          ...r,
-          group: r.group_name ?? getGroup(r.date),
-        }));
+        const mapped = data.map((r: any) => ({ ...r, group: r.group_name ?? getGroup(r.date) }));
         setReminders(mapped);
       }
     } catch (error) {
@@ -48,55 +44,42 @@ export function useReminders() {
     }
   };
 
-  useEffect(() => {
-    fetchReminders();
-  }, []);
+  useEffect(() => { fetchReminders(); }, []);
 
   const createReminder = async (input: NewReminderInput) => {
     try {
       const payload = { ...input, group_name: getGroup(input.date) };
       const res = await fetch(`${API_URL}/reminders/`, {
-        ...OPTS,
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify(payload),
       });
       if (res.ok) {
-        const newReminder = await res.json();
-        setReminders((prev) => [...prev, { ...newReminder, group: newReminder.group_name ?? getGroup(newReminder.date) }]);
-        return newReminder;
+        const r = await res.json();
+        setReminders((prev) => [...prev, { ...r, group: r.group_name ?? getGroup(r.date) }]);
+        return r;
       }
-    } catch (error) {
-      console.error("Failed to create reminder:", error);
-    }
+    } catch (error) { console.error("Failed to create reminder:", error); }
   };
 
   const toggleCompleted = async (id: string) => {
     const reminder = reminders.find((r) => r.id === id);
     if (!reminder) return;
-    
-    // Optimistic UI
-    setReminders((prev) => prev.map((r) => (r.id === id ? { ...r, completed: !r.completed } : r)));
-    
+    setReminders((prev) => prev.map((r) => r.id === id ? { ...r, completed: !r.completed } : r));
     try {
       await fetch(`${API_URL}/reminders/${id}`, {
-        ...OPTS,
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify({ completed: !reminder.completed }),
       });
-    } catch (error) {
-      console.error("Failed to toggle reminder:", error);
-    }
+    } catch (error) { console.error("Failed to toggle reminder:", error); }
   };
 
   const deleteReminder = async (id: string) => {
     setReminders((prev) => prev.filter((r) => r.id !== id));
     try {
-      await fetch(`${API_URL}/reminders/${id}`, { ...OPTS, method: "DELETE" });
-    } catch (error) {
-      console.error("Failed to delete reminder:", error);
-    }
+      await fetch(`${API_URL}/reminders/${id}`, { method: "DELETE", headers: getAuthHeaders() });
+    } catch (error) { console.error("Failed to delete reminder:", error); }
   };
 
   return { reminders, loaded, createReminder, toggleCompleted, deleteReminder };

@@ -6,6 +6,12 @@ import { Lock, Eye, EyeOff } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
+// Guarda el token como cookie en el dominio del frontend (Vercel)
+function setAuthCookie(token: string) {
+  const maxAge = 60 * 60 * 24 * 15; // 15 días
+  document.cookie = `access_token=${token}; path=/; max-age=${maxAge}; SameSite=Lax; Secure`;
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [password, setPassword] = useState("");
@@ -21,39 +27,36 @@ export default function LoginPage() {
     setLoading(true);
 
     const loginUrl = `${API_URL}/auth/login`;
-    console.log("[Login] Intentando conectar a:", loginUrl);
+    console.log("[Login] URL:", loginUrl);
     setDebugInfo(`Conectando a: ${loginUrl}`);
 
     try {
       const res = await fetch(loginUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ password }),
       });
 
-      console.log("[Login] Respuesta HTTP:", res.status, res.statusText);
-      setDebugInfo(`HTTP ${res.status} ${res.statusText}`);
+      console.log("[Login] HTTP:", res.status);
+      setDebugInfo(`HTTP ${res.status}`);
 
       if (res.ok) {
-        console.log("[Login] OK — redirigiendo a /dashboard");
+        const data = await res.json();
+        // Guardamos el token en una cookie del dominio de Vercel
+        setAuthCookie(data.token);
+        console.log("[Login] Token guardado, redirigiendo...");
         router.replace("/dashboard");
       } else {
         let detail = "Error desconocido";
-        try {
-          const body = await res.json();
-          detail = body.detail ?? JSON.stringify(body);
-        } catch {
-          detail = await res.text();
-        }
-        console.error("[Login] Error del servidor:", detail);
+        try { detail = (await res.json()).detail; } catch { /* noop */ }
+        console.error("[Login] Error:", detail);
         setDebugInfo(`Error ${res.status}: ${detail}`);
         setError("Contraseña incorrecta. Inténtalo de nuevo.");
         setPassword("");
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      console.error("[Login] Error de red/CORS:", msg);
+      console.error("[Login] Red/CORS:", msg);
       setDebugInfo(`Error de red: ${msg}`);
       setError(`No se pudo conectar: ${msg}`);
     } finally {
@@ -63,7 +66,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-[#f5f5f7] flex flex-col items-center justify-center px-6">
-      {/* Logo / branding */}
       <div className="mb-10 text-center">
         <div className="w-16 h-16 bg-[#0071e3] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
           <Lock size={28} className="text-white" />
@@ -72,7 +74,6 @@ export default function LoginPage() {
         <p className="text-sm text-[#6e6e73] mt-1">Introduce tu contraseña para continuar</p>
       </div>
 
-      {/* Form */}
       <form
         onSubmit={handleSubmit}
         className="w-full max-w-[360px] bg-white rounded-[24px] shadow-sm border border-[#e5e5ea] p-6 flex flex-col gap-4"
@@ -96,15 +97,9 @@ export default function LoginPage() {
           </button>
         </div>
 
-        {error && (
-          <p className="text-[13px] text-[#FF3B30] text-center -mt-1">{error}</p>
-        )}
-
-        {/* Debug info — visible en pantalla para diagnosticar desde el móvil */}
+        {error && <p className="text-[13px] text-[#FF3B30] text-center -mt-1">{error}</p>}
         {debugInfo && (
-          <p className="text-[11px] text-[#8e8e93] text-center font-mono break-all -mt-1">
-            {debugInfo}
-          </p>
+          <p className="text-[11px] text-[#8e8e93] text-center font-mono break-all -mt-1">{debugInfo}</p>
         )}
 
         <button
@@ -115,10 +110,7 @@ export default function LoginPage() {
           {loading ? "Entrando..." : "Entrar"}
         </button>
 
-        {/* URL de la API en pantalla para confirmar que es la correcta */}
-        <p className="text-[10px] text-[#c7c7cc] text-center font-mono">
-          API: {API_URL}
-        </p>
+        <p className="text-[10px] text-[#c7c7cc] text-center font-mono">API: {API_URL}</p>
       </form>
     </div>
   );

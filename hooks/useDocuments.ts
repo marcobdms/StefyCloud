@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react";
 import type { Document } from "@/types";
+import { getAuthHeaders } from "@/lib/auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 const BASE_URL = API_URL.endsWith("/api") ? API_URL.slice(0, -4) : API_URL;
-const OPTS = { credentials: "include" as RequestCredentials };
 
 export function useDocuments() {
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -13,15 +13,10 @@ export function useDocuments() {
 
   const fetchDocuments = async () => {
     try {
-      const res = await fetch(`${API_URL}/documents/`, OPTS);
+      const res = await fetch(`${API_URL}/documents/`, { headers: getAuthHeaders() });
       if (res.ok) {
         const data = await res.json();
-        // Construimos la URL completa para el frontend
-        const docsWithFullUrl = data.map((d: any) => ({
-          ...d,
-          url: d.url ? `${BASE_URL}${d.url}` : undefined
-        }));
-        setDocuments(docsWithFullUrl);
+        setDocuments(data.map((d: any) => ({ ...d, url: d.url ? `${BASE_URL}${d.url}` : undefined })));
       }
     } catch (error) {
       console.error("Failed to fetch documents:", error);
@@ -30,44 +25,34 @@ export function useDocuments() {
     }
   };
 
-  useEffect(() => {
-    fetchDocuments();
-  }, []);
+  useEffect(() => { fetchDocuments(); }, []);
 
   const addDocument = async (file: File) => {
     const ext = file.name.split(".").pop()?.toLowerCase() as Document["type"];
     const allowed: Document["type"][] = ["pdf", "doc", "docx", "xls", "xlsx", "txt"];
-    if (!allowed.includes(ext)) {
-      alert("Formato no permitido");
-      return;
-    }
+    if (!allowed.includes(ext)) { alert("Formato no permitido"); return; }
 
     const formData = new FormData();
     formData.append("file", file);
-
     try {
       const res = await fetch(`${API_URL}/documents/`, {
-        ...OPTS,
         method: "POST",
+        headers: getAuthHeaders(),
         body: formData,
       });
       if (res.ok) {
-        const newDoc = await res.json();
-        newDoc.url = newDoc.url ? `${BASE_URL}${newDoc.url}` : undefined;
-        setDocuments((prev) => [newDoc, ...prev]);
+        const d = await res.json();
+        d.url = d.url ? `${BASE_URL}${d.url}` : undefined;
+        setDocuments((prev) => [d, ...prev]);
       }
-    } catch (error) {
-      console.error("Failed to upload document:", error);
-    }
+    } catch (error) { console.error("Failed to upload document:", error); }
   };
 
   const deleteDocument = async (id: string) => {
     setDocuments((prev) => prev.filter((d) => d.id !== id));
     try {
-      await fetch(`${API_URL}/documents/${id}`, { ...OPTS, method: "DELETE" });
-    } catch (error) {
-      console.error("Failed to delete document:", error);
-    }
+      await fetch(`${API_URL}/documents/${id}`, { method: "DELETE", headers: getAuthHeaders() });
+    } catch (error) { console.error("Failed to delete document:", error); }
   };
 
   return { documents, loaded, addDocument, deleteDocument };

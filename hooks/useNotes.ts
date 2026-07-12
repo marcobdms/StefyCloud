@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import type { Note } from "@/types";
+import { getAuthHeaders } from "@/lib/auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-const OPTS = { credentials: "include" as RequestCredentials };
 
 export function useNotes() {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -12,11 +12,8 @@ export function useNotes() {
 
   const fetchNotes = async () => {
     try {
-      const res = await fetch(`${API_URL}/notes/`, OPTS);
-      if (res.ok) {
-        const data = await res.json();
-        setNotes(data);
-      }
+      const res = await fetch(`${API_URL}/notes/`, { headers: getAuthHeaders() });
+      if (res.ok) setNotes(await res.json());
     } catch (error) {
       console.error("Failed to fetch notes:", error);
     } finally {
@@ -24,49 +21,39 @@ export function useNotes() {
     }
   };
 
-  useEffect(() => {
-    fetchNotes();
-  }, []);
+  useEffect(() => { fetchNotes(); }, []);
 
-  const createNote = async (title: string = "", content: string = "") => {
+  const createNote = async (title = "", content = "") => {
     try {
       const res = await fetch(`${API_URL}/notes/`, {
-        ...OPTS,
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify({ title, content }),
       });
       if (res.ok) {
-        const newNote = await res.json();
-        setNotes((prev) => [newNote, ...prev]);
-        return newNote;
+        const n = await res.json();
+        setNotes((prev) => [n, ...prev]);
+        return n;
       }
-    } catch (error) {
-      console.error("Failed to create note:", error);
-    }
+    } catch (error) { console.error("Failed to create note:", error); }
   };
 
   const updateNote = async (id: string, fields: Partial<Pick<Note, "title" | "content">>) => {
-    setNotes((prev) => prev.map((n) => (n.id === id ? { ...n, ...fields, updatedAt: new Date().toISOString() } : n)));
+    setNotes((prev) => prev.map((n) => n.id === id ? { ...n, ...fields, updatedAt: new Date().toISOString() } : n));
     try {
       await fetch(`${API_URL}/notes/${id}`, {
-        ...OPTS,
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify(fields),
       });
-    } catch (error) {
-      console.error("Failed to update note:", error);
-    }
+    } catch (error) { console.error("Failed to update note:", error); }
   };
 
   const deleteNote = async (id: string) => {
     setNotes((prev) => prev.filter((n) => n.id !== id));
     try {
-      await fetch(`${API_URL}/notes/${id}`, { ...OPTS, method: "DELETE" });
-    } catch (error) {
-      console.error("Failed to delete note:", error);
-    }
+      await fetch(`${API_URL}/notes/${id}`, { method: "DELETE", headers: getAuthHeaders() });
+    } catch (error) { console.error("Failed to delete note:", error); }
   };
 
   return { notes, loaded, createNote, updateNote, deleteNote };

@@ -8,24 +8,14 @@ class LoginRequest(BaseModel):
     password: str
 
 @router.post("/login")
-def login(body: LoginRequest, response: Response):
+def login(body: LoginRequest):
     if not verify_password(body.password):
         raise HTTPException(status_code=401, detail="Contraseña incorrecta")
 
     token = create_access_token()
-
-    # Cookie httpOnly: el navegador la envía automáticamente en cada petición
-    response.set_cookie(
-        key="access_token",
-        value=token,
-        httponly=True,
-        secure=True,        # Solo HTTPS
-        samesite="lax",
-        max_age=60 * 60 * 24 * ACCESS_TOKEN_EXPIRE_DAYS,  # 15 días en segundos
-    )
-    return {"ok": True}
+    # Devolvemos el token en el body — el frontend lo guardará como cookie en su propio dominio
+    return {"ok": True, "token": token}
 
 @router.post("/logout")
-def logout(response: Response):
-    response.delete_cookie("access_token")
+def logout():
     return {"ok": True}
