@@ -3,8 +3,9 @@ from datetime import datetime, timezone
 from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy.orm import Session
 from apscheduler.schedulers.background import BackgroundScheduler
-from .database import engine, Base, SessionLocal
+from .database import engine, Base, SessionLocal, get_db
 from .routers import notes, reminders, documents, images
 from .routers import auth as auth_router
 from .routers import push as push_router
@@ -37,13 +38,19 @@ os.makedirs("uploads", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # Dependencia de autenticación
-def require_auth(request: Request):
+def require_auth(request: Request, db: Session = Depends(get_db)):
     auth_header = request.headers.get("Authorization", "")
     if not auth_header.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="No autenticado")
     token = auth_header.removeprefix("Bearer ")
     if not decode_token(token):
         raise HTTPException(status_code=401, detail="Token inválido o expirado")
+    # Verificar que la sesión existe en BD (no ha sido revocada)
+    from .auth import hash_token
+    token_h = hash_token(token)
+    session = db.query(models.Session).filter(models.Session.token_hash == token_h).first()
+    if not session:
+        raise HTTPException(status_code=401, detail="Sesión no encontrada. Inicia sesión de nuevo.")
 
 # Routers
 app.include_router(auth_router.router)

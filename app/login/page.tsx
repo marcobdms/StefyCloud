@@ -42,7 +42,6 @@ export default function LoginPage() {
 
       if (res.ok) {
         const data = await res.json();
-        // Guardamos el token en una cookie del dominio de Vercel
         setAuthCookie(data.token);
         console.log("[Login] Token guardado, redirigiendo...");
         router.replace("/dashboard");
@@ -51,7 +50,11 @@ export default function LoginPage() {
         try { detail = (await res.json()).detail; } catch { /* noop */ }
         console.error("[Login] Error:", detail);
         setDebugInfo(`Error ${res.status}: ${detail}`);
-        setError("Contraseña incorrecta. Inténtalo de nuevo.");
+        if (res.status === 403) {
+          setError("Límite de dispositivos alcanzado. Cierra sesión en otro dispositivo primero.");
+        } else {
+          setError("Contraseña incorrecta. Inténtalo de nuevo.");
+        }
         setPassword("");
       }
     } catch (err: unknown) {

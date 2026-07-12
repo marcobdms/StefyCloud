@@ -1,10 +1,12 @@
 import os
+import hashlib
 from datetime import datetime, timedelta
 from jose import jwt
 
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "change-me-in-production-please")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_DAYS = 15
+MAX_SESSIONS = 2
 
 APP_PASSWORD = os.getenv("APP_PASSWORD", "stefany123")
 
@@ -21,3 +23,7 @@ def decode_token(token: str) -> bool:
         return True
     except Exception:
         return False
+
+def hash_token(token: str) -> str:
+    """Hash del token para guardar en BD sin exponer el JWT completo."""
+    return hashlib.sha256(token.encode()).hexdigest()

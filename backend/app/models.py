@@ -58,3 +58,13 @@ class PushSubscription(Base):
     p256dh = Column(String)
     auth = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class Session(Base):
+    __tablename__ = "sessions"
+
+    id = Column(String, primary_key=True, default=generate_uuid, index=True)
+    token_hash = Column(String, unique=True, index=True)  # Hash del JWT para identificarlo
+    device_label = Column(String, nullable=True)           # Ej: "iPhone de Stefany"
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+

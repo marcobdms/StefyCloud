@@ -1,62 +1,61 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, field_serializer
 from typing import Optional
 from datetime import datetime
 
+# Config base que convierte snake_case → camelCase en JSON
+class CamelModel(BaseModel):
+    model_config = ConfigDict(
+        from_attributes=True,
+        populate_by_name=True,
+        alias_generator=lambda s: ''.join(w.capitalize() if i else w for i, w in enumerate(s.split('_')))
+    )
+
 # ================= NOTES =================
-class NoteBase(BaseModel):
+class NoteCreate(BaseModel):
     title: str = ""
     content: str = ""
-
-class NoteCreate(NoteBase):
-    pass
 
 class NoteUpdate(BaseModel):
     title: Optional[str] = None
     content: Optional[str] = None
 
-class Note(NoteBase):
+class Note(CamelModel):
     id: str
+    title: str = ""
+    content: str = ""
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
-
 # ================= DOCUMENTS =================
-class DocumentBase(BaseModel):
+class DocumentCreate(BaseModel):
     name: str
     type: str
     size_bytes: int
     url: Optional[str] = None
 
-class DocumentCreate(DocumentBase):
-    pass
-
-class Document(DocumentBase):
+class Document(CamelModel):
     id: str
+    name: str
+    type: str
+    size_bytes: int
+    url: Optional[str] = None
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
-
 # ================= IMAGES =================
-class CloudImageBase(BaseModel):
+class CloudImageCreate(BaseModel):
     title: str
     url: str
     thumbnail: str
 
-class CloudImageCreate(CloudImageBase):
-    pass
-
-class CloudImage(CloudImageBase):
+class CloudImage(CamelModel):
     id: str
+    title: str
+    url: str
+    thumbnail: str
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-
 # ================= REMINDERS =================
-class ReminderBase(BaseModel):
+class ReminderCreate(BaseModel):
     title: str
     description: Optional[str] = None
     completed: bool = False
@@ -64,9 +63,6 @@ class ReminderBase(BaseModel):
     time: Optional[str] = None
     priority: str
     group_name: str
-
-class ReminderCreate(ReminderBase):
-    pass
 
 class ReminderUpdate(BaseModel):
     title: Optional[str] = None
@@ -77,8 +73,12 @@ class ReminderUpdate(BaseModel):
     priority: Optional[str] = None
     group_name: Optional[str] = None
 
-class Reminder(ReminderBase):
+class Reminder(CamelModel):
     id: str
-
-    class Config:
-        from_attributes = True
+    title: str
+    description: Optional[str] = None
+    completed: bool = False
+    date: str
+    time: Optional[str] = None
+    priority: str
+    group_name: str
