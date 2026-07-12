@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import type { Document } from "@/types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+const BASE_URL = API_URL.endsWith("/api") ? API_URL.slice(0, -4) : API_URL;
+const OPTS = { credentials: "include" as RequestCredentials };
 
 export function useDocuments() {
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -11,13 +13,13 @@ export function useDocuments() {
 
   const fetchDocuments = async () => {
     try {
-      const res = await fetch(`${API_URL}/documents/`);
+      const res = await fetch(`${API_URL}/documents/`, OPTS);
       if (res.ok) {
         const data = await res.json();
         // Construimos la URL completa para el frontend
         const docsWithFullUrl = data.map((d: any) => ({
           ...d,
-          url: d.url ? `http://localhost:8000${d.url}` : undefined
+          url: d.url ? `${BASE_URL}${d.url}` : undefined
         }));
         setDocuments(docsWithFullUrl);
       }
@@ -45,12 +47,13 @@ export function useDocuments() {
 
     try {
       const res = await fetch(`${API_URL}/documents/`, {
+        ...OPTS,
         method: "POST",
         body: formData,
       });
       if (res.ok) {
         const newDoc = await res.json();
-        newDoc.url = newDoc.url ? `http://localhost:8000${newDoc.url}` : undefined;
+        newDoc.url = newDoc.url ? `${BASE_URL}${newDoc.url}` : undefined;
         setDocuments((prev) => [newDoc, ...prev]);
       }
     } catch (error) {
@@ -61,7 +64,7 @@ export function useDocuments() {
   const deleteDocument = async (id: string) => {
     setDocuments((prev) => prev.filter((d) => d.id !== id));
     try {
-      await fetch(`${API_URL}/documents/${id}`, { method: "DELETE" });
+      await fetch(`${API_URL}/documents/${id}`, { ...OPTS, method: "DELETE" });
     } catch (error) {
       console.error("Failed to delete document:", error);
     }

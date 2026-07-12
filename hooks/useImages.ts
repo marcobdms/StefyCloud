@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import type { CloudImage } from "@/types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+const BASE_URL = API_URL.endsWith("/api") ? API_URL.slice(0, -4) : API_URL;
+const OPTS = { credentials: "include" as RequestCredentials };
 
 export function useImages() {
   const [images, setImages] = useState<CloudImage[]>([]);
@@ -11,13 +13,13 @@ export function useImages() {
 
   const fetchImages = async () => {
     try {
-      const res = await fetch(`${API_URL}/images/`);
+      const res = await fetch(`${API_URL}/images/`, OPTS);
       if (res.ok) {
         const data = await res.json();
         const imagesWithFullUrl = data.map((img: any) => ({
           ...img,
-          url: `http://localhost:8000${img.url}`,
-          thumbnail: `http://localhost:8000${img.thumbnail}`
+          url: `${BASE_URL}${img.url}`,
+          thumbnail: `${BASE_URL}${img.thumbnail}`
         }));
         setImages(imagesWithFullUrl);
       }
@@ -38,13 +40,14 @@ export function useImages() {
 
     try {
       const res = await fetch(`${API_URL}/images/`, {
+        ...OPTS,
         method: "POST",
         body: formData,
       });
       if (res.ok) {
         const newImg = await res.json();
-        newImg.url = `http://localhost:8000${newImg.url}`;
-        newImg.thumbnail = `http://localhost:8000${newImg.thumbnail}`;
+        newImg.url = `${BASE_URL}${newImg.url}`;
+        newImg.thumbnail = `${BASE_URL}${newImg.thumbnail}`;
         setImages((prev) => [newImg, ...prev]);
       }
     } catch (error) {
@@ -55,7 +58,7 @@ export function useImages() {
   const deleteImage = async (id: string) => {
     setImages((prev) => prev.filter((i) => i.id !== id));
     try {
-      await fetch(`${API_URL}/images/${id}`, { method: "DELETE" });
+      await fetch(`${API_URL}/images/${id}`, { ...OPTS, method: "DELETE" });
     } catch (error) {
       console.error("Failed to delete image:", error);
     }

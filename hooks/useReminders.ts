@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import type { Reminder, ReminderGroup, Priority } from "@/types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+const OPTS = { credentials: "include" as RequestCredentials };
 
 function getGroup(dateStr: string): ReminderGroup {
   const today = new Date();
@@ -30,10 +31,15 @@ export function useReminders() {
 
   const fetchReminders = async () => {
     try {
-      const res = await fetch(`${API_URL}/reminders/`);
+      const res = await fetch(`${API_URL}/reminders/`, OPTS);
       if (res.ok) {
         const data = await res.json();
-        setReminders(data);
+        // El backend devuelve group_name, la UI espera group
+        const mapped = data.map((r: any) => ({
+          ...r,
+          group: r.group_name ?? getGroup(r.date),
+        }));
+        setReminders(mapped);
       }
     } catch (error) {
       console.error("Failed to fetch reminders:", error);
@@ -50,13 +56,14 @@ export function useReminders() {
     try {
       const payload = { ...input, group_name: getGroup(input.date) };
       const res = await fetch(`${API_URL}/reminders/`, {
+        ...OPTS,
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       if (res.ok) {
         const newReminder = await res.json();
-        setReminders((prev) => [...prev, newReminder]);
+        setReminders((prev) => [...prev, { ...newReminder, group: newReminder.group_name ?? getGroup(newReminder.date) }]);
         return newReminder;
       }
     } catch (error) {
@@ -73,6 +80,7 @@ export function useReminders() {
     
     try {
       await fetch(`${API_URL}/reminders/${id}`, {
+        ...OPTS,
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ completed: !reminder.completed }),
@@ -85,7 +93,7 @@ export function useReminders() {
   const deleteReminder = async (id: string) => {
     setReminders((prev) => prev.filter((r) => r.id !== id));
     try {
-      await fetch(`${API_URL}/reminders/${id}`, { method: "DELETE" });
+      await fetch(`${API_URL}/reminders/${id}`, { ...OPTS, method: "DELETE" });
     } catch (error) {
       console.error("Failed to delete reminder:", error);
     }

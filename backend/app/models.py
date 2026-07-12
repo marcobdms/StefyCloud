@@ -48,3 +48,13 @@ class Reminder(Base):
     time = Column(String, nullable=True) # HH:MM
     priority = Column(String) # low, medium, high
     group_name = Column(String) # today, tomorrow, upcoming. Se calculará en el endpoint o cliente.
+
+
+class PushSubscription(Base):
+    __tablename__ = "push_subscriptions"
+
+    id = Column(String, primary_key=True, default=generate_uuid, index=True)
+    endpoint = Column(String, unique=True, index=True)
+    p256dh = Column(String)
+    auth = Column(String)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

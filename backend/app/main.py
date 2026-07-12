@@ -1,21 +1,27 @@
-from fastapi import FastAPI
+import os
+from datetime import datetime, timezone
+from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from .database import engine, Base
+from apscheduler.schedulers.background import BackgroundScheduler
+from .database import engine, Base, SessionLocal
 from .routers import notes, reminders, documents, images
-import os
+from .routers import auth as auth_router
+from .routers import push as push_router
+from .routers.push import send_push_notification
+from .auth import decode_token
+from . import models
 
-# Crear las tablas en la base de datos (En prod se suele usar Alembic)
+# Crear las tablas en la base de datos
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Stefany Cloud API")
 
-# Configurar CORS (permitir Vercel y Localhost)
+# CORS
 origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    # Cuando tengas el dominio de Vercel, lo añades aquí. Ej: "https://stefany-cloud.vercel.app"
-    "*" # Temporalmente abierto para desarrollo. Quitar en prod.
+    os.getenv("FRONTEND_URL", "https://stefy-cloud.vercel.app"),
 ]
 
 app.add_middleware(
@@ -26,16 +32,66 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Servir archivos estáticos (uploads)
+# Servir archivos subidos
 os.makedirs("uploads", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
-# Incluir routers
-app.include_router(notes.router)
-app.include_router(reminders.router)
-app.include_router(documents.router)
-app.include_router(images.router)
+# Dependencia de autenticación
+def require_auth(request: Request):
+    token = request.cookies.get("access_token")
+    if not token or not decode_token(token):
+        raise HTTPException(status_code=401, detail="No autenticado")
+
+# Routers
+app.include_router(auth_router.router)
+app.include_router(push_router.router)
+app.include_router(notes.router, dependencies=[Depends(require_auth)])
+app.include_router(reminders.router, dependencies=[Depends(require_auth)])
+app.include_router(documents.router, dependencies=[Depends(require_auth)])
+app.include_router(images.router, dependencies=[Depends(require_auth)])
 
 @app.get("/")
 def read_root():
     return {"message": "Stefany Cloud API is running."}
+
+@app.get("/api/me")
+def me(request: Request):
+    token = request.cookies.get("access_token")
+    if not token or not decode_token(token):
+        raise HTTPException(status_code=401, detail="No autenticado")
+    return {"ok": True}
+
+
+# ── Scheduler: revisa recordatorios cada minuto ──────────────────────────────
+def check_reminders():
+    """Envía push si hay un recordatorio que empieza en los próximos 5 minutos."""
+    db = SessionLocal()
+    try:
+        now = datetime.now(timezone.utc)
+        today_str = now.strftime("%Y-%m-%d")
+        current_time = now.strftime("%H:%M")
+
+        # Busca recordatorios de hoy, no completados, con hora definida
+        pending = db.query(models.Reminder).filter(
+            models.Reminder.date == today_str,
+            models.Reminder.completed == False,
+            models.Reminder.time != None,
+        ).all()
+
+        for reminder in pending:
+            if reminder.time == current_time:
+                subscriptions = db.query(models.PushSubscription).all()
+                for sub in subscriptions:
+                    send_push_notification(
+                        sub,
+                        title=f"⏰ {reminder.title}",
+                        body=reminder.description or "Es hora de tu recordatorio",
+                        url="/reminders",
+                    )
+    finally:
+        db.close()
+
+
+scheduler = BackgroundScheduler()
+scheduler.add_job(check_reminders, "interval", minutes=1)
+scheduler.start()
