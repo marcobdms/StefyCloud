@@ -5,7 +5,7 @@ import Header from "@/components/layout/Header";
 import BottomNav from "@/components/layout/BottomNav";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 
-import { AnimatePresence, motion } from "framer-motion";
+
 
 function PushSetup() {
   usePushNotifications();
@@ -19,18 +19,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-[#f5f5f7] flex flex-col overflow-x-hidden">
       <PushSetup />
       <Header />
-      <AnimatePresence mode="wait">
-        <motion.main
-          key={pathname}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.2, ease: "easeOut" }}
-          className="flex-1 max-w-[500px] mx-auto w-full px-4 pb-28"
-        >
+      <main className="flex-1 max-w-[500px] mx-auto w-full px-4 pb-28">
+        <div key={pathname} className="page-animate">
           {children}
-        </motion.main>
-      </AnimatePresence>
+        </div>
+      </main>
       <BottomNav />
     </div>
   );

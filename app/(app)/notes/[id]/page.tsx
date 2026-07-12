@@ -55,14 +55,7 @@ export default function NoteEditorPage({ params }: { params: Promise<{ id: strin
   return (
     <div className="pt-2 flex flex-col min-h-[calc(100vh-10rem)]">
       {/* Toolbar */}
-      <div className="flex items-center justify-between mb-4">
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-1 text-[#0071e3] text-sm font-medium active:opacity-60 transition-opacity"
-        >
-          <ChevronLeft size={18} />
-          Notas
-        </button>
+      <div className="flex items-center justify-end mb-4">
         <div className="flex items-center gap-3">
           <span className="text-xs text-[#6e6e73]">
             {saved ? "Guardado" : "Guardando..."}
