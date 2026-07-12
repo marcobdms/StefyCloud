@@ -18,11 +18,11 @@ def login(body: LoginRequest, request: Request, db: Session = Depends(get_db)):
     # ── Límite de 2 dispositivos ──────────────────────────────
     active_sessions = db.query(models.Session).order_by(models.Session.created_at).all()
 
-    if len(active_sessions) >= MAX_SESSIONS:
-        raise HTTPException(
-            status_code=403,
-            detail=f"Ya hay {MAX_SESSIONS} dispositivos activos. Cierra sesión en otro dispositivo antes de continuar."
-        )
+    # if len(active_sessions) >= MAX_SESSIONS:
+    #     raise HTTPException(
+    #         status_code=403,
+    #         detail=f"Ya hay {MAX_SESSIONS} dispositivos activos. Cierra sesión en otro dispositivo antes de continuar."
+    #     )
 
     token = create_access_token()
     token_h = hash_token(token)
