@@ -1,7 +1,8 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, LogOut } from "lucide-react";
+import { getAuthHeaders, clearAuthCookie } from "@/lib/auth";
 
 const sectionTitles: Record<string, string> = {
   "/notes": "Notas",
@@ -35,12 +36,25 @@ export default function Header() {
     <header className="sticky top-0 z-40 bg-[#f5f5f7]/90 backdrop-blur-md">
       <div className="max-w-[500px] mx-auto px-5 pt-4 pb-3">
         {isDashboard ? (
-          <>
-            <p className="text-sm text-[#6e6e73]">{getGreeting()}</p>
-            <h1 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight">
-              Stefany
-            </h1>
-          </>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-[#6e6e73]">{getGreeting()}</p>
+              <h1 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight">
+                Stefany
+              </h1>
+            </div>
+            <button
+              onClick={() => {
+                const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+                fetch(`${API_URL}/auth/logout`, { method: "POST", headers: getAuthHeaders() }).catch(() => {});
+                clearAuthCookie();
+              }}
+              className="w-10 h-10 bg-[#e5e5ea]/50 rounded-full flex items-center justify-center text-[#ff3b30] active:opacity-60 transition"
+              aria-label="Cerrar sesión"
+            >
+              <LogOut size={18} strokeWidth={2.5} />
+            </button>
+          </div>
         ) : (
           <div className="flex items-center gap-1 -ml-1">
             <button

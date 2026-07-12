@@ -5,6 +5,8 @@ import Header from "@/components/layout/Header";
 import BottomNav from "@/components/layout/BottomNav";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 
+import { AnimatePresence, motion } from "framer-motion";
+
 function PushSetup() {
   usePushNotifications();
   return null;
@@ -14,16 +16,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <div className="min-h-screen bg-[#f5f5f7] flex flex-col">
+    <div className="min-h-screen bg-[#f5f5f7] flex flex-col overflow-x-hidden">
       <PushSetup />
       <Header />
-      {/* key={pathname} hace que React re-monte el <main> en cada ruta → dispara la animación */}
-      <main
-        key={pathname}
-        className="page-animate flex-1 max-w-[500px] mx-auto w-full px-4 pb-28"
-      >
-        {children}
-      </main>
+      <AnimatePresence mode="wait">
+        <motion.main
+          key={pathname}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
+          className="flex-1 max-w-[500px] mx-auto w-full px-4 pb-28"
+        >
+          {children}
+        </motion.main>
+      </AnimatePresence>
       <BottomNav />
     </div>
   );

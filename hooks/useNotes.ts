@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import type { Note } from "@/types";
-import { getAuthHeaders } from "@/lib/auth";
+import { getAuthHeaders, fetchWithAuth } from "@/lib/auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
@@ -12,7 +12,7 @@ export function useNotes() {
 
   const fetchNotes = async () => {
     try {
-      const res = await fetch(`${API_URL}/notes/`, { headers: getAuthHeaders() });
+      const res = await fetchWithAuth(`${API_URL}/notes/`);
       if (res.ok) setNotes(await res.json());
     } catch (error) {
       console.error("Failed to fetch notes:", error);
