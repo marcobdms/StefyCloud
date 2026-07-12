@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback, use } from "react";
-import { useRouter } from "next/navigation";
-import { ChevronLeft, Trash2 } from "lucide-react";
+import { useState, useEffect, use } from "react";
+import { Trash2 } from "lucide-react";
 import { useNotes } from "@/hooks/useNotes";
 
 export default function NoteEditorPage({ params }: { params: Promise<{ id: string }> }) {
@@ -70,15 +69,20 @@ export default function NoteEditorPage({ params }: { params: Promise<{ id: strin
         </div>
       </div>
 
-      {/* Title */}
-      <input
-        type="text"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        placeholder="Título"
-        className="text-2xl font-bold text-[#1d1d1f] bg-transparent border-none outline-none w-full placeholder:text-[#c7c7cc] mb-3"
-        autoFocus={!title}
-      />
+      {/* Title con fade en los bordes cuando el texto desborda */}
+      <div
+        className="mb-3 w-full"
+        style={{ maskImage: "linear-gradient(to right, black 85%, transparent 100%)" }}
+      >
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Título"
+          className="text-2xl font-bold text-[#1d1d1f] bg-transparent border-none outline-none w-full placeholder:text-[#c7c7cc]"
+          autoFocus={!title}
+        />
+      </div>
 
       {/* Date */}
       <p className="text-xs text-[#6e6e73] mb-4">
