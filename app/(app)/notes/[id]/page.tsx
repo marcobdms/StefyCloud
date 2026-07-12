@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, use } from "react";
+import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { useNotes } from "@/hooks/useNotes";
 
