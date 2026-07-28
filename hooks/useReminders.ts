@@ -6,9 +6,13 @@ import { getAuthHeaders } from "@/lib/auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
+type ApiReminder = Omit<Reminder, "group"> & {
+  groupName?: ReminderGroup;
+};
+
 function getGroup(dateStr: string): ReminderGroup {
   const today = new Date();
-  const target = new Date(dateStr);
+  const target = new Date(`${dateStr}T00:00:00`);
   today.setHours(0, 0, 0, 0);
   target.setHours(0, 0, 0, 0);
   const diff = Math.round((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
@@ -34,7 +38,10 @@ export function useReminders() {
       const res = await fetch(`${API_URL}/reminders/`, { headers: getAuthHeaders() });
       if (res.ok) {
         const data = await res.json();
-        const mapped = data.map((r: any) => ({ ...r, group: r.group_name ?? getGroup(r.date) }));
+        const mapped = data.map((reminder: ApiReminder) => ({
+          ...reminder,
+          group: getGroup(reminder.date),
+        }));
         setReminders(mapped);
       }
     } catch (error) {
@@ -44,11 +51,19 @@ export function useReminders() {
     }
   };
 
-  useEffect(() => { fetchReminders(); }, []);
+  useEffect(() => {
+    void (async () => {
+      await fetchReminders();
+    })();
+  }, []);
 
   const createReminder = async (input: NewReminderInput) => {
     try {
-      const payload = { ...input, group_name: getGroup(input.date) };
+      const payload = {
+        ...input,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        group_name: getGroup(input.date),
+      };
       const res = await fetch(`${API_URL}/reminders/`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },

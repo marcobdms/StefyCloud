@@ -36,6 +36,8 @@ export interface Reminder {
   completed: boolean;
   date: string; // ISO date string
   time?: string; // "HH:MM"
+  timezone?: string;
+  notifiedAt?: string;
   priority: Priority;
   group: ReminderGroup;
 }

@@ -1,36 +1,95 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Stefany Cloud
 
-## Getting Started
+Nube personal construida con Next.js y FastAPI. Incluye notas, imágenes,
+documentos, recordatorios y notificaciones Web Push.
 
-First, run the development server:
+## Desarrollo local
+
+Frontend:
 
 ```bash
+npm ci
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Backend:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+cd backend
+python -m venv .venv
+. .venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Variables mínimas del frontend:
 
-## Learn More
+```dotenv
+NEXT_PUBLIC_API_URL=http://localhost:8000/api
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=<vapid-public-key>
+JWT_SECRET_KEY=<same-jwt-secret-as-backend>
+```
 
-To learn more about Next.js, take a look at the following resources:
+Variables del backend:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```dotenv
+DATABASE_URL=sqlite:///./stefany_cloud.db
+APP_PASSWORD=<app-password>
+JWT_SECRET_KEY=<jwt-secret>
+FRONTEND_URL=http://localhost:3000
+VAPID_PUBLIC_KEY=<vapid-public-key>
+VAPID_PRIVATE_KEY=<vapid-private-key>
+VAPID_EMAIL=<contact-email>
+DEFAULT_TIMEZONE=America/Caracas
+REMINDER_GRACE_MINUTES=15
+UPLOAD_DIR=uploads
+MAX_UPLOAD_BYTES=26214400
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Los recordatorios nuevos guardan la zona IANA enviada por el dispositivo.
+`DEFAULT_TIMEZONE` solo se usa como respaldo para recordatorios antiguos que
+todavía no tengan zona.
 
-## Deploy on Vercel
+## Pruebas
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+PYTHONPATH=backend python -m unittest discover -s backend/tests
+npm run lint
+npm run build
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Despliegue
+
+### Vercel
+
+`NEXT_PUBLIC_VAPID_PUBLIC_KEY` se inserta durante `next build`. Si cambia esta
+variable hay que desplegar de nuevo el frontend. La clave pública debe ser la
+pareja exacta de `VAPID_PRIVATE_KEY` en Coolify.
+
+### Coolify
+
+Los cambios del backend requieren un redeploy. Al arrancar, la API aplica una
+migración aditiva que incorpora las columnas de notificaciones; no elimina ni
+recrea la tabla `notes`.
+
+Antes de desplegar, comprobar `DATABASE_URL`:
+
+- Una URL de PostgreSQL apunta a una base externa y el redeploy del contenedor
+  no debería borrar las notas.
+- Con SQLite, el archivo de la URL debe estar dentro de un volumen persistente
+  de Coolify. Sin ese volumen, un redeploy puede borrar la base completa.
+
+Los archivos siguen guardándose en `UPLOAD_DIR`. Mientras no se use un bucket,
+esa carpeta también necesita un volumen persistente para sobrevivir a un
+redeploy.
+
+El scheduler está pensado para una sola réplica del backend. Si se escala a
+varias réplicas, debe moverse a un worker único.
+
+## Activar notificaciones en iPhone
+
+1. Añadir Stefany Cloud a la pantalla de inicio.
+2. Abrir la aplicación desde ese icono.
+3. Iniciar sesión y entrar en Recordatorios.
+4. Activar el toggle `Notificaciones`.
+5. Aceptar el permiso de iOS.

@@ -23,8 +23,11 @@ def update_reminder(reminder_id: str, reminder: schemas.ReminderUpdate, db: Sess
     db_reminder = db.query(models.Reminder).filter(models.Reminder.id == reminder_id).first()
     if db_reminder is None:
         raise HTTPException(status_code=404, detail="Reminder not found")
-    for key, value in reminder.model_dump(exclude_unset=True).items():
+    updates = reminder.model_dump(exclude_unset=True)
+    for key, value in updates.items():
         setattr(db_reminder, key, value)
+    if {"date", "time", "timezone"} & updates.keys():
+        db_reminder.notified_at = None
     db.commit()
     db.refresh(db_reminder)
     return db_reminder
