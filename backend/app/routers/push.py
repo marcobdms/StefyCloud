@@ -1,11 +1,14 @@
 import os
 import json
-from fastapi import APIRouter, Depends, Request, HTTPException
+from typing import Literal
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from pywebpush import webpush, WebPushException
 from .. import models
 from ..database import get_db
-from ..auth import decode_token
+from ..dependencies import get_authenticated_session
 
 router = APIRouter(prefix="/api/push", tags=["Push"])
 
@@ -13,40 +16,115 @@ VAPID_PRIVATE_KEY = os.getenv("VAPID_PRIVATE_KEY", "")
 VAPID_PUBLIC_KEY = os.getenv("VAPID_PUBLIC_KEY", "")
 VAPID_CLAIMS = {"sub": f"mailto:{os.getenv('VAPID_EMAIL', 'admin@stefanycloud.com')}"}
 
-def require_auth(request: Request):
-    token = request.cookies.get("access_token")
-    if not token or not decode_token(token):
-        raise HTTPException(status_code=401, detail="No autenticado")
+PushSendResult = Literal["sent", "failed", "stale", "disabled"]
+
+
+class SubscriptionKeys(BaseModel):
+    p256dh: str
+    auth: str
+
+
+class SubscriptionPayload(BaseModel):
+    endpoint: str
+    keys: SubscriptionKeys
 
 @router.post("/subscribe")
-def subscribe(request: Request, body: dict, db: Session = Depends(get_db)):
+def subscribe(
+    body: SubscriptionPayload,
+    db: Session = Depends(get_db),
+    session: models.Session = Depends(get_authenticated_session),
+):
     """Guarda la suscripción push del dispositivo."""
-    require_auth(request)
-    endpoint = body.get("endpoint")
-    if not endpoint:
-        raise HTTPException(status_code=400, detail="Endpoint requerido")
-    
-    # Busca si ya existe esta suscripción
     existing = db.query(models.PushSubscription).filter(
-        models.PushSubscription.endpoint == endpoint
+        models.PushSubscription.endpoint == body.endpoint
     ).first()
-    
-    if not existing:
+
+    if existing:
+        existing.p256dh = body.keys.p256dh
+        existing.auth = body.keys.auth
+        existing.session_id = session.id
+    else:
         sub = models.PushSubscription(
-            endpoint=endpoint,
-            p256dh=body.get("keys", {}).get("p256dh", ""),
-            auth=body.get("keys", {}).get("auth", ""),
+            endpoint=body.endpoint,
+            p256dh=body.keys.p256dh,
+            auth=body.keys.auth,
+            session_id=session.id,
         )
         db.add(sub)
-        db.commit()
-    
+
+    db.commit()
     return {"ok": True}
 
-def send_push_notification(subscription: "models.PushSubscription", title: str, body: str, url: str = "/reminders"):
+
+@router.post("/unsubscribe")
+def unsubscribe(
+    body: SubscriptionPayload,
+    db: Session = Depends(get_db),
+    session: models.Session = Depends(get_authenticated_session),
+):
+    subscription = (
+        db.query(models.PushSubscription)
+        .filter(
+            models.PushSubscription.endpoint == body.endpoint,
+            models.PushSubscription.session_id == session.id,
+        )
+        .first()
+    )
+    if subscription:
+        db.delete(subscription)
+        db.commit()
+    return {"ok": True}
+
+
+@router.post("/test")
+def test_notification(
+    db: Session = Depends(get_db),
+    session: models.Session = Depends(get_authenticated_session),
+):
+    subscriptions = (
+        db.query(models.PushSubscription)
+        .filter(models.PushSubscription.session_id == session.id)
+        .all()
+    )
+    if not subscriptions:
+        raise HTTPException(
+            status_code=404,
+            detail="Este dispositivo no tiene una suscripción activa",
+        )
+
+    results = [
+        send_push_notification(
+            subscription,
+            "Notificaciones activadas",
+            "Stefany Cloud ya puede avisarte de tus recordatorios",
+            "/reminders",
+        )
+        for subscription in subscriptions
+    ]
+    if "sent" in results:
+        return {"ok": True}
+    if "disabled" in results:
+        raise HTTPException(
+            status_code=503,
+            detail="Las claves VAPID no están configuradas en el backend",
+        )
+    raise HTTPException(
+        status_code=502,
+        detail="La suscripción se guardó, pero la prueba no pudo entregarse",
+    )
+
+
+def send_push_notification(
+    subscription: "models.PushSubscription",
+    title: str,
+    body: str,
+    url: str = "/reminders",
+) -> PushSendResult:
     """Envía una notificación push a un dispositivo."""
     if not VAPID_PRIVATE_KEY or not VAPID_PUBLIC_KEY:
-        return  # VAPID no configurado, silencioso
-    
+        print("Push disabled: VAPID keys are not configured")
+        return "disabled"
+
     try:
         webpush(
             subscription_info={
@@ -58,7 +136,10 @@ def send_push_notification(subscription: "models.PushSubscription", title: str, 
             },
             data=json.dumps({"title": title, "body": body, "url": url}),
             vapid_private_key=VAPID_PRIVATE_KEY,
-            vapid_claims=VAPID_CLAIMS,
+            vapid_claims=dict(VAPID_CLAIMS),
         )
+        return "sent"
     except WebPushException as ex:
         print(f"Push failed: {ex}")
+        status_code = getattr(ex.response, "status_code", None)
+        return "stale" if status_code in {404, 410} else "failed"

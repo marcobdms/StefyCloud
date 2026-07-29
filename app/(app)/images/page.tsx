@@ -2,8 +2,7 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
-import { ImageIcon } from "lucide-react";
+import { ImageIcon, X } from "lucide-react";
 import { useImages } from "@/hooks/useImages";
 import SearchBar from "@/components/common/SearchBar";
 import EmptyState from "@/components/common/EmptyState";
@@ -11,7 +10,7 @@ import FloatingButton from "@/components/common/FloatingButton";
 import SectionTitle from "@/components/common/SectionTitle";
 
 export default function ImagesPage() {
-  const { images, loaded, addImage } = useImages();
+  const { images, loaded, uploading, error, clearError, addImage } = useImages();
   const [search, setSearch] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -19,10 +18,12 @@ export default function ImagesPage() {
     img.title.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-    Array.from(files).forEach((file) => addImage(file));
+    for (const file of Array.from(files)) {
+      await addImage(file);
+    }
     e.target.value = "";
   };
 
@@ -42,6 +43,16 @@ export default function ImagesPage() {
 
       <SectionTitle title="Imágenes" />
       <SearchBar value={search} onChange={setSearch} placeholder="Buscar imágenes..." />
+
+      {error && (
+        <div role="alert" className="mt-3 flex items-start justify-between gap-3 rounded-lg bg-[#ffebe9] px-3 py-2.5 text-sm text-[#b42318]">
+          <span>{error}</span>
+          <button onClick={clearError} aria-label="Cerrar error" className="flex-shrink-0">
+            <X size={16} />
+          </button>
+        </div>
+      )}
+      {uploading && <p className="mt-3 text-sm text-[#6e6e73]">Subiendo imagen...</p>}
 
       {filtered.length === 0 ? (
         <div className="mt-4">
@@ -70,7 +81,11 @@ export default function ImagesPage() {
         </div>
       )}
 
-      <FloatingButton onClick={() => fileInputRef.current?.click()} label="Subir imagen" />
+      <FloatingButton
+        onClick={() => fileInputRef.current?.click()}
+        label="Subir imagen"
+        disabled={uploading}
+      />
     </div>
   );
 }

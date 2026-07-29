@@ -1,10 +1,10 @@
 "use client";
 
-import { use, useState } from "react";
+import { use } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, Calendar, Clock, Flag, CheckCircle2, Circle, Trash2 } from "lucide-react";
 import { useReminders } from "@/hooks/useReminders";
-import type { Reminder, Priority } from "@/types";
+import type { Priority } from "@/types";
 
 const priorityLabels: Record<Priority, string> = {
   high: "Alta",

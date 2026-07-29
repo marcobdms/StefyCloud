@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Bell, ChevronRight, Circle, CheckCircle2, X } from "lucide-react";
+import { Bell, BellRing, ChevronRight, Circle, CheckCircle2, X } from "lucide-react";
 import { useReminders } from "@/hooks/useReminders";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import type { Reminder, ReminderGroup, Priority } from "@/types";
 import type { NewReminderInput } from "@/hooks/useReminders";
 import EmptyState from "@/components/common/EmptyState";
@@ -23,7 +24,9 @@ const priorityColors: Record<Priority, string> = {
 };
 
 function todayISO() {
-  return new Date().toISOString().split("T")[0];
+  const now = new Date();
+  const localNow = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
+  return localNow.toISOString().split("T")[0];
 }
 
 function ReminderItem({
@@ -163,6 +166,7 @@ function NewReminderForm({
 
 export default function RemindersPage() {
   const { reminders, loaded, createReminder, toggleCompleted } = useReminders();
+  const push = usePushNotifications();
   const [showForm, setShowForm] = useState(false);
 
   const groups: ReminderGroup[] = ["today", "tomorrow", "upcoming"];
@@ -180,6 +184,57 @@ export default function RemindersPage() {
   return (
     <div className="pt-2">
       <SectionTitle title="Recordatorios" />
+
+      <div className="mb-5 rounded-lg border border-[#e5e5ea] bg-white px-4 py-3 shadow-sm">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-[#e8f0fd] text-[#0071e3]">
+            {push.enabled ? <BellRing size={18} /> : <Bell size={18} />}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[14px] font-semibold text-[#1d1d1f]">
+              Notificaciones
+            </p>
+            <p className="truncate text-xs text-[#6e6e73]">
+              {push.enabled ? "Activadas en este dispositivo" : "Avisos de recordatorios"}
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={push.enabled}
+            aria-label={push.enabled ? "Desactivar notificaciones" : "Activar notificaciones"}
+            onClick={push.toggle}
+            disabled={!push.supported || push.loading}
+            className={`relative h-7 w-12 flex-shrink-0 rounded-full transition-colors disabled:opacity-40 ${
+              push.enabled ? "bg-[#34C759]" : "bg-[#c7c7cc]"
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-sm transition-transform ${
+                push.enabled ? "translate-x-[22px]" : "translate-x-0.5"
+              }`}
+            />
+          </button>
+        </div>
+        {!push.supported && (
+          <p className="mt-2 text-xs text-[#b42318]">
+            Este dispositivo no admite notificaciones web.
+          </p>
+        )}
+        {push.requiresInstall && !push.enabled && (
+          <p className="mt-2 text-xs text-[#6e6e73]">
+            Abre la app desde el icono añadido a la pantalla de inicio.
+          </p>
+        )}
+        {push.error && (
+          <div role="alert" className="mt-2 flex items-start justify-between gap-2 text-xs text-[#b42318]">
+            <span>{push.error}</span>
+            <button onClick={push.clearError} aria-label="Cerrar error">
+              <X size={14} />
+            </button>
+          </div>
+        )}
+      </div>
 
       {showForm && (
         <NewReminderForm onSave={handleSave} onCancel={() => setShowForm(false)} />

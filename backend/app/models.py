@@ -46,8 +46,10 @@ class Reminder(Base):
     completed = Column(Boolean, default=False)
     date = Column(String) # ISO date string YYYY-MM-DD
     time = Column(String, nullable=True) # HH:MM
+    timezone = Column(String, nullable=True) # IANA timezone from the user's device
     priority = Column(String) # low, medium, high
     group_name = Column(String) # today, tomorrow, upcoming. Se calculará en el endpoint o cliente.
+    notified_at = Column(DateTime(timezone=True), nullable=True)
 
 
 class PushSubscription(Base):
@@ -57,6 +59,7 @@ class PushSubscription(Base):
     endpoint = Column(String, unique=True, index=True)
     p256dh = Column(String)
     auth = Column(String)
+    session_id = Column(String, nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -67,4 +70,3 @@ class Session(Base):
     token_hash = Column(String, unique=True, index=True)  # Hash del JWT para identificarlo
     device_label = Column(String, nullable=True)           # Ej: "iPhone de Stefany"
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-

@@ -1,10 +1,8 @@
 // Service Worker para Stefany Cloud
 // Maneja notificaciones push y caché básico
 
-const CACHE_NAME = "stefany-cloud-v1";
-
 // Instala el service worker
-self.addEventListener("install", (event) => {
+self.addEventListener("install", () => {
   self.skipWaiting();
 });
 

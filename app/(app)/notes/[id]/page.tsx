@@ -30,22 +30,28 @@ export default function NoteEditorPage({ params }: { params: Promise<{ id: strin
 
   useEffect(() => {
     if (loaded && note && !initialized) {
-      setTitle(note.title);
-      setContent(note.content);
-      setInitialized(true);
+      const timer = setTimeout(() => {
+        setTitle(note.title);
+        setContent(note.content);
+        setInitialized(true);
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [loaded, note, initialized]);
 
   // Debounced auto-save
   useEffect(() => {
     if (!initialized) return;
-    setSaved(false);
-    const timer = setTimeout(() => {
+    const pendingTimer = setTimeout(() => setSaved(false), 0);
+    const saveTimer = setTimeout(() => {
       updateNote(id, { title, content });
       setSaved(true);
     }, 800);
-    return () => clearTimeout(timer);
-  }, [title, content, id, initialized]);
+    return () => {
+      clearTimeout(pendingTimer);
+      clearTimeout(saveTimer);
+    };
+  }, [title, content, id, initialized, updateNote]);
 
   const handleDelete = () => {
     deleteNote(id);

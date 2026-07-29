@@ -4,12 +4,6 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Header from "@/components/layout/Header";
 import BottomNav from "@/components/layout/BottomNav";
-import { usePushNotifications } from "@/hooks/usePushNotifications";
-
-function PushSetup() {
-  usePushNotifications();
-  return null;
-}
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -17,14 +11,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Fade out rápido → esperar render → fade in
-    setVisible(false);
-    const t = setTimeout(() => setVisible(true), 60);
-    return () => clearTimeout(t);
+    const hideTimer = setTimeout(() => setVisible(false), 0);
+    const showTimer = setTimeout(() => setVisible(true), 60);
+    return () => {
+      clearTimeout(hideTimer);
+      clearTimeout(showTimer);
+    };
   }, [pathname]);
 
   return (
     <div className="min-h-screen bg-[#f5f5f7] flex flex-col overflow-x-hidden">
-      <PushSetup />
       <Header />
       <main
         className="flex-1 max-w-[500px] mx-auto w-full px-4 pb-28 transition-opacity duration-200 ease-out"

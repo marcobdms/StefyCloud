@@ -1,28 +1,34 @@
-import os, shutil, uuid
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List
 from .. import models, schemas
 from ..database import get_db
+from ..storage import delete_upload, save_upload
 
 router = APIRouter(prefix="/api/documents", tags=["Documents"])
-UPLOAD_DIR = "uploads"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+ALLOWED_EXTENSIONS = {"pdf", "doc", "docx", "xls", "xlsx", "txt"}
 
 @router.post("/", response_model=schemas.Document, response_model_by_alias=True)
 def upload_document(file: UploadFile = File(...), db: Session = Depends(get_db)):
-    ext = file.filename.split(".")[-1].lower() if "." in file.filename else "unknown"
-    unique_filename = f"{uuid.uuid4()}_{file.filename}"
-    file_path = os.path.join(UPLOAD_DIR, unique_filename)
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-    size_bytes = os.path.getsize(file_path)
-    db_doc = models.Document(
-        name=file.filename, type=ext, size_bytes=size_bytes, url=f"/uploads/{unique_filename}"
+    original_name, extension, stored_name, size_bytes = save_upload(
+        file,
+        ALLOWED_EXTENSIONS,
     )
-    db.add(db_doc)
-    db.commit()
-    db.refresh(db_doc)
+    url = f"/uploads/{stored_name}"
+    db_doc = models.Document(
+        name=original_name,
+        type=extension,
+        size_bytes=size_bytes,
+        url=url,
+    )
+    try:
+        db.add(db_doc)
+        db.commit()
+        db.refresh(db_doc)
+    except Exception:
+        db.rollback()
+        delete_upload(url)
+        raise
     return db_doc
 
 @router.get("/", response_model=List[schemas.Document], response_model_by_alias=True)
@@ -34,10 +40,7 @@ def delete_document(doc_id: str, db: Session = Depends(get_db)):
     db_doc = db.query(models.Document).filter(models.Document.id == doc_id).first()
     if db_doc is None:
         raise HTTPException(status_code=404, detail="Document not found")
-    if db_doc.url:
-        fp = os.path.join(UPLOAD_DIR, db_doc.url.split("/")[-1])
-        if os.path.exists(fp):
-            os.remove(fp)
+    delete_upload(db_doc.url)
     db.delete(db_doc)
     db.commit()
     return {"ok": True}

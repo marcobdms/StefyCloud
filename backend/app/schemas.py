@@ -61,6 +61,7 @@ class ReminderCreate(BaseModel):
     completed: bool = False
     date: str
     time: Optional[str] = None
+    timezone: Optional[str] = None
     priority: str
     group_name: str
 
@@ -70,6 +71,7 @@ class ReminderUpdate(BaseModel):
     completed: Optional[bool] = None
     date: Optional[str] = None
     time: Optional[str] = None
+    timezone: Optional[str] = None
     priority: Optional[str] = None
     group_name: Optional[str] = None
 
@@ -80,5 +82,7 @@ class Reminder(CamelModel):
     completed: bool = False
     date: str
     time: Optional[str] = None
+    timezone: Optional[str] = None
     priority: str
     group_name: str
+    notified_at: Optional[datetime] = None

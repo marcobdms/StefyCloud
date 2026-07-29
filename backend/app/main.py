@@ -1,22 +1,53 @@
 import os
-from datetime import datetime, timezone
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from apscheduler.schedulers.background import BackgroundScheduler
-from .database import engine, Base, SessionLocal, get_db
+from .database import engine, Base, SessionLocal
+from .dependencies import require_auth
+from .migrations import apply_compatibility_migrations
+from .reminder_scheduler import process_due_reminders
+from .storage import UPLOAD_DIR
 from .routers import notes, reminders, documents, images
 from .routers import auth as auth_router
 from .routers import push as push_router
-from .routers.push import send_push_notification
 from .auth import decode_token
-from . import models
 
 # Crear las tablas en la base de datos
 Base.metadata.create_all(bind=engine)
+apply_compatibility_migrations()
 
-app = FastAPI(title="Stefany Cloud API")
+
+def check_reminders():
+    db = SessionLocal()
+    try:
+        process_due_reminders(db)
+    finally:
+        db.close()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    del app
+    scheduler = BackgroundScheduler(timezone="UTC")
+    scheduler.add_job(
+        check_reminders,
+        "interval",
+        minutes=1,
+        coalesce=True,
+        max_instances=1,
+    )
+    scheduler.start()
+    try:
+        yield
+    finally:
+        scheduler.shutdown(wait=False)
+
+
+app = FastAPI(title="Stefany Cloud API", lifespan=lifespan)
 
 # CORS
 origins = [
@@ -34,23 +65,8 @@ app.add_middleware(
 )
 
 # Servir archivos subidos
-os.makedirs("uploads", exist_ok=True)
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
-
-# Dependencia de autenticación
-def require_auth(request: Request, db: Session = Depends(get_db)):
-    auth_header = request.headers.get("Authorization", "")
-    if not auth_header.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="No autenticado")
-    token = auth_header.removeprefix("Bearer ")
-    if not decode_token(token):
-        raise HTTPException(status_code=401, detail="Token inválido o expirado")
-    # Verificar que la sesión existe en BD (no ha sido revocada)
-    from .auth import hash_token
-    token_h = hash_token(token)
-    session = db.query(models.Session).filter(models.Session.token_hash == token_h).first()
-    if not session:
-        raise HTTPException(status_code=401, detail="Sesión no encontrada. Inicia sesión de nuevo.")
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 # Routers
 app.include_router(auth_router.router)
@@ -73,38 +89,3 @@ def me(request: Request):
     if not decode_token(token):
         raise HTTPException(status_code=401, detail="No autenticado")
     return {"ok": True}
-
-
-# ── Scheduler: revisa recordatorios cada minuto ──────────────────────────────
-def check_reminders():
-    """Envía push si hay un recordatorio que empieza en los próximos 5 minutos."""
-    db = SessionLocal()
-    try:
-        now = datetime.now(timezone.utc)
-        today_str = now.strftime("%Y-%m-%d")
-        current_time = now.strftime("%H:%M")
-
-        # Busca recordatorios de hoy, no completados, con hora definida
-        pending = db.query(models.Reminder).filter(
-            models.Reminder.date == today_str,
-            models.Reminder.completed == False,
-            models.Reminder.time != None,
-        ).all()
-
-        for reminder in pending:
-            if reminder.time == current_time:
-                subscriptions = db.query(models.PushSubscription).all()
-                for sub in subscriptions:
-                    send_push_notification(
-                        sub,
-                        title=f"⏰ {reminder.title}",
-                        body=reminder.description or "Es hora de tu recordatorio",
-                        url="/reminders",
-                    )
-    finally:
-        db.close()
-
-
-scheduler = BackgroundScheduler()
-scheduler.add_job(check_reminders, "interval", minutes=1)
-scheduler.start()

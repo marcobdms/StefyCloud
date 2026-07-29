@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import type { CloudImage } from "@/types";
-import { getAuthHeaders } from "@/lib/auth";
+import { fetchWithAuth } from "@/lib/auth";
+import { getApiError, resolveApiAssetUrl } from "@/lib/api";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 const BASE_URL = API_URL.endsWith("/api") ? API_URL.slice(0, -4) : API_URL;
@@ -10,53 +11,90 @@ const BASE_URL = API_URL.endsWith("/api") ? API_URL.slice(0, -4) : API_URL;
 export function useImages() {
   const [images, setImages] = useState<CloudImage[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchImages = async () => {
     try {
-      const res = await fetch(`${API_URL}/images/`, { headers: getAuthHeaders() });
-      if (res.ok) {
-        const data = await res.json();
-        setImages(data.map((img: any) => ({
-          ...img,
-          url: `${BASE_URL}${img.url}`,
-          thumbnail: `${BASE_URL}${img.thumbnail}`,
-        })));
-      }
+      const res = await fetchWithAuth(`${API_URL}/images/`);
+      if (!res.ok) throw new Error(await getApiError(res, "No se pudieron cargar las imágenes"));
+      const data = await res.json();
+      setImages(data.map((img: CloudImage) => ({
+        ...img,
+        url: resolveApiAssetUrl(BASE_URL, img.url) ?? "",
+        thumbnail: resolveApiAssetUrl(BASE_URL, img.thumbnail) ?? "",
+      })));
     } catch (error) {
       console.error("Failed to fetch images:", error);
+      setError(error instanceof Error ? error.message : "No se pudieron cargar las imágenes");
     } finally {
       setLoaded(true);
     }
   };
 
-  useEffect(() => { fetchImages(); }, []);
+  useEffect(() => {
+    void (async () => {
+      await fetchImages();
+    })();
+  }, []);
 
   const addImage = async (file: File) => {
+    setUploading(true);
+    setError(null);
     const formData = new FormData();
     formData.append("file", file);
     try {
-      const res = await fetch(`${API_URL}/images/`, {
+      const res = await fetchWithAuth(`${API_URL}/images/`, {
         method: "POST",
-        headers: getAuthHeaders(),
         body: formData,
       });
-      if (res.ok) {
-        const img = await res.json();
-        img.url = `${BASE_URL}${img.url}`;
-        img.thumbnail = `${BASE_URL}${img.thumbnail}`;
-        setImages((prev) => [img, ...prev]);
-      }
-    } catch (error) { console.error("Failed to upload image:", error); }
+      if (!res.ok) throw new Error(await getApiError(res, "No se pudo subir la imagen"));
+      const payload: CloudImage = await res.json();
+      const image = {
+        ...payload,
+        url: resolveApiAssetUrl(BASE_URL, payload.url) ?? "",
+        thumbnail: resolveApiAssetUrl(BASE_URL, payload.thumbnail) ?? "",
+      };
+      setImages((prev) => [image, ...prev]);
+      return true;
+    } catch (error) {
+      console.error("Failed to upload image:", error);
+      setError(error instanceof Error ? error.message : "No se pudo subir la imagen");
+      return false;
+    } finally {
+      setUploading(false);
+    }
   };
 
   const deleteImage = async (id: string) => {
-    setImages((prev) => prev.filter((i) => i.id !== id));
+    setDeletingId(id);
+    setError(null);
     try {
-      await fetch(`${API_URL}/images/${id}`, { method: "DELETE", headers: getAuthHeaders() });
-    } catch (error) { console.error("Failed to delete image:", error); }
+      const res = await fetchWithAuth(`${API_URL}/images/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error(await getApiError(res, "No se pudo eliminar la imagen"));
+      setImages((prev) => prev.filter((image) => image.id !== id));
+      return true;
+    } catch (error) {
+      console.error("Failed to delete image:", error);
+      setError(error instanceof Error ? error.message : "No se pudo eliminar la imagen");
+      return false;
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const getImage = (id: string) => images.find((i) => i.id === id);
 
-  return { images, loaded, addImage, deleteImage, getImage };
+  return {
+    images,
+    loaded,
+    uploading,
+    deletingId,
+    error,
+    clearError: () => setError(null),
+    addImage,
+    deleteImage,
+    getImage,
+  };
 }

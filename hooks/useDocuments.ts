@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import type { Document } from "@/types";
-import { getAuthHeaders } from "@/lib/auth";
+import { fetchWithAuth } from "@/lib/auth";
+import { getApiError, resolveApiAssetUrl } from "@/lib/api";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 const BASE_URL = API_URL.endsWith("/api") ? API_URL.slice(0, -4) : API_URL;
@@ -10,50 +11,92 @@ const BASE_URL = API_URL.endsWith("/api") ? API_URL.slice(0, -4) : API_URL;
 export function useDocuments() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchDocuments = async () => {
     try {
-      const res = await fetch(`${API_URL}/documents/`, { headers: getAuthHeaders() });
-      if (res.ok) {
-        const data = await res.json();
-        setDocuments(data.map((d: any) => ({ ...d, url: d.url ? `${BASE_URL}${d.url}` : undefined })));
-      }
+      const res = await fetchWithAuth(`${API_URL}/documents/`);
+      if (!res.ok) throw new Error(await getApiError(res, "No se pudieron cargar los documentos"));
+      const data = await res.json();
+      setDocuments(data.map((document: Document) => ({
+        ...document,
+        url: resolveApiAssetUrl(BASE_URL, document.url),
+      })));
     } catch (error) {
       console.error("Failed to fetch documents:", error);
+      setError(error instanceof Error ? error.message : "No se pudieron cargar los documentos");
     } finally {
       setLoaded(true);
     }
   };
 
-  useEffect(() => { fetchDocuments(); }, []);
+  useEffect(() => {
+    void (async () => {
+      await fetchDocuments();
+    })();
+  }, []);
 
   const addDocument = async (file: File) => {
     const ext = file.name.split(".").pop()?.toLowerCase() as Document["type"];
     const allowed: Document["type"][] = ["pdf", "doc", "docx", "xls", "xlsx", "txt"];
-    if (!allowed.includes(ext)) { alert("Formato no permitido"); return; }
+    if (!allowed.includes(ext)) {
+      setError("Formato no permitido");
+      return false;
+    }
 
+    setUploading(true);
+    setError(null);
     const formData = new FormData();
     formData.append("file", file);
     try {
-      const res = await fetch(`${API_URL}/documents/`, {
+      const res = await fetchWithAuth(`${API_URL}/documents/`, {
         method: "POST",
-        headers: getAuthHeaders(),
         body: formData,
       });
-      if (res.ok) {
-        const d = await res.json();
-        d.url = d.url ? `${BASE_URL}${d.url}` : undefined;
-        setDocuments((prev) => [d, ...prev]);
-      }
-    } catch (error) { console.error("Failed to upload document:", error); }
+      if (!res.ok) throw new Error(await getApiError(res, "No se pudo subir el documento"));
+      const payload: Document = await res.json();
+      const document = {
+        ...payload,
+        url: resolveApiAssetUrl(BASE_URL, payload.url),
+      };
+      setDocuments((prev) => [document, ...prev]);
+      return true;
+    } catch (error) {
+      console.error("Failed to upload document:", error);
+      setError(error instanceof Error ? error.message : "No se pudo subir el documento");
+      return false;
+    } finally {
+      setUploading(false);
+    }
   };
 
   const deleteDocument = async (id: string) => {
-    setDocuments((prev) => prev.filter((d) => d.id !== id));
+    setDeletingId(id);
+    setError(null);
     try {
-      await fetch(`${API_URL}/documents/${id}`, { method: "DELETE", headers: getAuthHeaders() });
-    } catch (error) { console.error("Failed to delete document:", error); }
+      const res = await fetchWithAuth(`${API_URL}/documents/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error(await getApiError(res, "No se pudo eliminar el documento"));
+      setDocuments((prev) => prev.filter((document) => document.id !== id));
+      return true;
+    } catch (error) {
+      console.error("Failed to delete document:", error);
+      setError(error instanceof Error ? error.message : "No se pudo eliminar el documento");
+      return false;
+    } finally {
+      setDeletingId(null);
+    }
   };
 
-  return { documents, loaded, addDocument, deleteDocument };
+  return {
+    documents,
+    loaded,
+    uploading,
+    deletingId,
+    error,
+    clearError: () => setError(null),
+    addDocument,
+    deleteDocument,
+  };
 }

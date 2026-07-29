@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
 import type { Note } from "@/types";
 import { getAuthHeaders, fetchWithAuth } from "@/lib/auth";
 
@@ -21,7 +21,11 @@ export function useNotes() {
     }
   };
 
-  useEffect(() => { fetchNotes(); }, []);
+  useEffect(() => {
+    void (async () => {
+      await fetchNotes();
+    })();
+  }, []);
 
   const createNote = async (title = "", content = "") => {
     try {
@@ -38,7 +42,7 @@ export function useNotes() {
     } catch (error) { console.error("Failed to create note:", error); }
   };
 
-  const updateNote = async (id: string, fields: Partial<Pick<Note, "title" | "content">>) => {
+  const updateNote = useCallback(async (id: string, fields: Partial<Pick<Note, "title" | "content">>) => {
     setNotes((prev) => prev.map((n) => n.id === id ? { ...n, ...fields, updatedAt: new Date().toISOString() } : n));
     try {
       await fetch(`${API_URL}/notes/${id}`, {
@@ -47,7 +51,7 @@ export function useNotes() {
         body: JSON.stringify(fields),
       });
     } catch (error) { console.error("Failed to update note:", error); }
-  };
+  }, []);
 
   const deleteNote = async (id: string) => {
     setNotes((prev) => prev.filter((n) => n.id !== id));

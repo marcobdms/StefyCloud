@@ -1,6 +1,6 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, Trash2 } from "lucide-react";
 import { useImages } from "@/hooks/useImages";
@@ -8,7 +8,8 @@ import { useImages } from "@/hooks/useImages";
 export default function ImageViewerPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
-  const { images, loaded, deleteImage } = useImages();
+  const { images, loaded, deletingId, error, deleteImage } = useImages();
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const image = images.find((img) => img.id === id);
 
@@ -33,13 +34,32 @@ export default function ImageViewerPage({ params }: { params: Promise<{ id: stri
           Imágenes
         </button>
         <button
-          onClick={() => { deleteImage(id); router.replace("/images"); }}
+          onClick={async () => {
+            if (!confirmingDelete) {
+              setConfirmingDelete(true);
+              return;
+            }
+            if (await deleteImage(id)) router.replace("/images");
+          }}
+          disabled={deletingId === id}
           className="text-[#FF3B30] active:opacity-60 transition-opacity"
           aria-label="Eliminar imagen"
         >
-          <Trash2 size={17} />
+          {confirmingDelete ? (
+            <span className="text-sm font-semibold">
+              {deletingId === id ? "Eliminando..." : "Confirmar"}
+            </span>
+          ) : (
+            <Trash2 size={17} />
+          )}
         </button>
       </div>
+
+      {error && (
+        <div role="alert" className="mb-4 rounded-lg bg-[#ffebe9] px-3 py-2.5 text-sm text-[#b42318]">
+          {error}
+        </div>
+      )}
 
       <div className="relative w-full aspect-square rounded-[20px] overflow-hidden bg-[#e5e5ea]">
         {/* eslint-disable-next-line @next/next/no-img-element */}

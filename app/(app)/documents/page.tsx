@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import { FileText, FileSpreadsheet, File } from "lucide-react";
+import { Download, FileText, FileSpreadsheet, File, Trash2, X } from "lucide-react";
 import { useDocuments } from "@/hooks/useDocuments";
 import type { Document } from "@/types";
 import SearchBar from "@/components/common/SearchBar";
@@ -51,7 +51,16 @@ function DocIcon({ type }: { type: Document["type"] }) {
 const ACCEPTED = ".pdf,.doc,.docx,.xls,.xlsx,.txt";
 
 export default function DocumentsPage() {
-  const { documents, loaded, addDocument } = useDocuments();
+  const {
+    documents,
+    loaded,
+    uploading,
+    deletingId,
+    error,
+    clearError,
+    addDocument,
+    deleteDocument,
+  } = useDocuments();
   const [search, setSearch] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -59,9 +68,9 @@ export default function DocumentsPage() {
     d.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) addDocument(file);
+    if (file) await addDocument(file);
     // Reset input so same file can be re-selected
     e.target.value = "";
   };
@@ -82,6 +91,16 @@ export default function DocumentsPage() {
       <SectionTitle title="Documentos" />
       <SearchBar value={search} onChange={setSearch} placeholder="Buscar documentos..." />
 
+      {error && (
+        <div role="alert" className="mt-3 flex items-start justify-between gap-3 rounded-lg bg-[#ffebe9] px-3 py-2.5 text-sm text-[#b42318]">
+          <span>{error}</span>
+          <button onClick={clearError} aria-label="Cerrar error" className="flex-shrink-0">
+            <X size={16} />
+          </button>
+        </div>
+      )}
+      {uploading && <p className="mt-3 text-sm text-[#6e6e73]">Subiendo documento...</p>}
+
       {filtered.length === 0 ? (
         <div className="mt-4">
           <EmptyState
@@ -100,21 +119,54 @@ export default function DocumentsPage() {
               }`}
             >
               <DocIcon type={doc.type} />
-              <div className="flex-1 min-w-0">
+              <a
+                href={doc.url}
+                target="_blank"
+                rel="noreferrer"
+                className="flex-1 min-w-0 active:opacity-60"
+              >
                 <p className="text-[15px] font-medium text-[#1d1d1f] truncate">{doc.name}</p>
                 <p className="text-xs text-[#6e6e73] mt-0.5">
                   {formatDate(doc.updatedAt)} · {formatSize(doc.sizeBytes)}
                 </p>
+              </a>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                {doc.url && (
+                  <a
+                    href={doc.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label={`Abrir ${doc.name}`}
+                    title="Abrir o descargar"
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-[#0071e3] active:bg-[#e8f0fd]"
+                  >
+                    <Download size={17} />
+                  </a>
+                )}
+                <button
+                  onClick={async () => {
+                    if (window.confirm(`¿Eliminar "${doc.name}"?`)) {
+                      await deleteDocument(doc.id);
+                    }
+                  }}
+                  disabled={deletingId === doc.id}
+                  aria-label={`Eliminar ${doc.name}`}
+                  title="Eliminar"
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-[#FF3B30] active:bg-[#ffebe9] disabled:opacity-40"
+                >
+                  <Trash2 size={16} />
+                </button>
               </div>
-              <span className="text-xs uppercase font-semibold text-[#8e8e93] bg-[#f5f5f7] px-2 py-1 rounded-md flex-shrink-0">
-                {doc.type}
-              </span>
             </div>
           ))}
         </div>
       )}
 
-      <FloatingButton onClick={() => fileInputRef.current?.click()} label="Subir documento" />
+      <FloatingButton
+        onClick={() => fileInputRef.current?.click()}
+        label="Subir documento"
+        disabled={uploading}
+      />
     </div>
   );
 }
