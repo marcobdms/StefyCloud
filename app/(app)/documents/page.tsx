@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import { Download, FileText, FileSpreadsheet, File, Trash2, X } from "lucide-react";
+import { Download, Eye, FileText, FileSpreadsheet, File, Trash2, X } from "lucide-react";
 import { useDocuments } from "@/hooks/useDocuments";
 import type { Document } from "@/types";
 import SearchBar from "@/components/common/SearchBar";
@@ -119,17 +119,12 @@ export default function DocumentsPage() {
               }`}
             >
               <DocIcon type={doc.type} />
-              <a
-                href={doc.url}
-                target="_blank"
-                rel="noreferrer"
-                className="flex-1 min-w-0 active:opacity-60"
-              >
+              <div className="flex-1 min-w-0">
                 <p className="text-[15px] font-medium text-[#1d1d1f] truncate">{doc.name}</p>
                 <p className="text-xs text-[#6e6e73] mt-0.5">
                   {formatDate(doc.updatedAt)} · {formatSize(doc.sizeBytes)}
                 </p>
-              </a>
+              </div>
               <div className="flex items-center gap-1 flex-shrink-0">
                 {doc.url && (
                   <a
@@ -137,7 +132,18 @@ export default function DocumentsPage() {
                     target="_blank"
                     rel="noreferrer"
                     aria-label={`Abrir ${doc.name}`}
-                    title="Abrir o descargar"
+                    title="Ver documento"
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-[#0071e3] active:bg-[#e8f0fd]"
+                  >
+                    <Eye size={17} />
+                  </a>
+                )}
+                {doc.url && (
+                  <a
+                    href={doc.url}
+                    download={doc.name}
+                    aria-label={`Descargar ${doc.name}`}
+                    title="Descargar"
                     className="w-8 h-8 rounded-lg flex items-center justify-center text-[#0071e3] active:bg-[#e8f0fd]"
                   >
                     <Download size={17} />
