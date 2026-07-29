@@ -5,7 +5,6 @@ import { fetchWithAuth } from "@/lib/auth";
 import { getApiError } from "@/lib/api";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 
 function urlBase64ToUint8Array(value: string): Uint8Array<ArrayBuffer> {
   const padding = "=".repeat((4 - (value.length % 4)) % 4);
@@ -16,6 +15,34 @@ function urlBase64ToUint8Array(value: string): Uint8Array<ArrayBuffer> {
     output[index] = rawData.charCodeAt(index);
   }
   return output;
+}
+
+function isValidVapidPublicKey(value: string): boolean {
+  try {
+    const decoded = urlBase64ToUint8Array(value.trim());
+    return decoded.length === 65 && decoded[0] === 4;
+  } catch {
+    return false;
+  }
+}
+
+async function getVapidPublicKey(): Promise<string> {
+  const response = await fetch(`${API_URL}/push/config`);
+  if (!response.ok) {
+    throw new Error(
+      await getApiError(
+        response,
+        "Las notificaciones no están configuradas correctamente en el servidor",
+      ),
+    );
+  }
+
+  const payload: { publicKey?: string } = await response.json();
+  const publicKey = payload.publicKey?.trim() ?? "";
+  if (!isValidVapidPublicKey(publicKey)) {
+    throw new Error("La clave pública de notificaciones del servidor no es válida");
+  }
+  return publicKey;
 }
 
 function isIosDevice(): boolean {
@@ -90,9 +117,6 @@ export function usePushNotifications() {
     setLoading(true);
     setError(null);
     try {
-      if (!VAPID_PUBLIC_KEY) {
-        throw new Error("Las notificaciones no están configuradas en el servidor");
-      }
       if (isIosDevice() && !isStandalone()) {
         setRequiresInstall(true);
         throw new Error("Abre Stefany Cloud desde el icono de la pantalla de inicio");
@@ -100,6 +124,7 @@ export function usePushNotifications() {
 
       const registration = await navigator.serviceWorker.register("/sw.js");
       await navigator.serviceWorker.ready;
+      const vapidPublicKey = await getVapidPublicKey();
       const permission = await Notification.requestPermission();
       if (permission !== "granted") {
         throw new Error("Activa el permiso de notificaciones en los ajustes del iPhone");
@@ -110,7 +135,7 @@ export function usePushNotifications() {
         existing ??
         (await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+          applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
         }));
       await saveSubscription(subscription);
       setEnabled(true);
