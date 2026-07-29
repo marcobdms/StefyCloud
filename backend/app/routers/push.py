@@ -1,5 +1,6 @@
 import os
 import json
+import base64
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -27,6 +28,27 @@ class SubscriptionKeys(BaseModel):
 class SubscriptionPayload(BaseModel):
     endpoint: str
     keys: SubscriptionKeys
+
+
+def has_valid_vapid_public_key(value: str) -> bool:
+    """Comprueba el formato de una clave pública VAPID P-256 sin exponer secretos."""
+    try:
+        padding = "=" * (-len(value) % 4)
+        decoded = base64.urlsafe_b64decode(value + padding)
+    except (ValueError, TypeError):
+        return False
+    return len(decoded) == 65 and decoded[0] == 4
+
+
+@router.get("/config")
+def push_config():
+    """Entrega la clave pública usada por esta API para crear suscripciones push."""
+    if not has_valid_vapid_public_key(VAPID_PUBLIC_KEY):
+        raise HTTPException(
+            status_code=503,
+            detail="VAPID_PUBLIC_KEY no es una clave pública VAPID P-256 válida",
+        )
+    return {"publicKey": VAPID_PUBLIC_KEY}
 
 @router.post("/subscribe")
 def subscribe(
