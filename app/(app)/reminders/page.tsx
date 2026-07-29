@@ -205,13 +205,13 @@ export default function RemindersPage() {
             aria-label={push.enabled ? "Desactivar notificaciones" : "Activar notificaciones"}
             onClick={push.toggle}
             disabled={!push.supported || push.loading}
-            className={`relative h-7 w-12 flex-shrink-0 rounded-full transition-colors disabled:opacity-40 ${
+            className={`relative h-7 w-12 flex-shrink-0 overflow-hidden rounded-full transition-colors disabled:opacity-40 ${
               push.enabled ? "bg-[#34C759]" : "bg-[#c7c7cc]"
             }`}
           >
             <span
-              className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-sm transition-transform ${
-                push.enabled ? "translate-x-[22px]" : "translate-x-0.5"
+              className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-sm transition-[left] duration-200 ${
+                push.enabled ? "left-[22px]" : "left-0.5"
               }`}
             />
           </button>
