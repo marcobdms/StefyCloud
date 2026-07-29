@@ -26,7 +26,6 @@ Variables mínimas del frontend:
 
 ```dotenv
 NEXT_PUBLIC_API_URL=http://localhost:8000/api
-NEXT_PUBLIC_VAPID_PUBLIC_KEY=<vapid-public-key>
 JWT_SECRET_KEY=<same-jwt-secret-as-backend>
 ```
 
@@ -62,9 +61,10 @@ npm run build
 
 ### Vercel
 
-`NEXT_PUBLIC_VAPID_PUBLIC_KEY` se inserta durante `next build`. Si cambia esta
-variable hay que desplegar de nuevo el frontend. La clave pública debe ser la
-pareja exacta de `VAPID_PRIVATE_KEY` en Coolify.
+La aplicación obtiene `VAPID_PUBLIC_KEY` directamente de la API al activar las
+notificaciones. Así no hay una segunda copia de la clave en Vercel que pueda
+quedar desactualizada. Debe ser la pareja exacta de `VAPID_PRIVATE_KEY` en
+Coolify.
 
 ### Coolify
 
