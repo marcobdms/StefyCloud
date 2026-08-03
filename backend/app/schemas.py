@@ -86,3 +86,21 @@ class Reminder(CamelModel):
     priority: str
     group_name: str
     notified_at: Optional[datetime] = None
+
+# ================= TRASH =================
+class TrashItem(CamelModel):
+    id: str
+    item_type: str
+    item_id: str
+    title: str = "Sin título"
+    deleted_at: datetime
+    expires_at: datetime
+    days_left: int
+
+class ActivityLog(CamelModel):
+    id: str
+    action: str
+    item_type: str
+    item_id: Optional[str] = None
+    title: str = "Sin título"
+    created_at: datetime

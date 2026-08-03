@@ -2,9 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { fetchWithAuth } from "@/lib/auth";
-import { getApiError } from "@/lib/api";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+import { API_URL, getApiError } from "@/lib/api";
 
 function urlBase64ToUint8Array(value: string): Uint8Array<ArrayBuffer> {
   const padding = "=".repeat((4 - (value.length % 4)) % 4);

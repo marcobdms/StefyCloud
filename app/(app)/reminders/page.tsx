@@ -182,7 +182,7 @@ export default function RemindersPage() {
   if (!loaded) return null;
 
   return (
-    <div className="pt-2">
+    <div className="page-animate pt-2">
       <SectionTitle title="Recordatorios" />
 
       <div className="mb-5 rounded-lg border border-[#e5e5ea] bg-white px-4 py-3 shadow-sm">

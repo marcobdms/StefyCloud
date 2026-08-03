@@ -70,3 +70,28 @@ class Session(Base):
     token_hash = Column(String, unique=True, index=True)  # Hash del JWT para identificarlo
     device_label = Column(String, nullable=True)           # Ej: "iPhone de Stefany"
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class TrashItem(Base):
+    __tablename__ = "trash_items"
+
+    id = Column(String, primary_key=True, default=generate_uuid, index=True)
+    item_type = Column(String, index=True)  # note, document, image, reminder
+    item_id = Column(String, index=True)
+    title = Column(String, default="Sin título")
+    payload = Column(Text)  # JSON serializado del elemento original
+    file_urls = Column(Text, default="[]")  # JSON serializado con rutas a purgar
+    deleted_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    expires_at = Column(DateTime(timezone=True), index=True)
+
+
+class ActivityLog(Base):
+    __tablename__ = "activity_logs"
+
+    id = Column(String, primary_key=True, default=generate_uuid, index=True)
+    action = Column(String, index=True)
+    item_type = Column(String, index=True)
+    item_id = Column(String, nullable=True, index=True)
+    title = Column(String, default="Sin título")
+    metadata_json = Column(Text, default="{}")
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)

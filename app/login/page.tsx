@@ -3,8 +3,7 @@
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Lock, Eye, EyeOff } from "lucide-react";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+import { API_URL } from "@/lib/api";
 
 // Guarda el token como cookie en el dominio del frontend (Vercel)
 function setAuthCookie(token: string) {
@@ -68,7 +67,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f5f7] flex flex-col items-center justify-center px-6">
+    <div className="page-animate min-h-screen bg-[#f5f5f7] flex flex-col items-center justify-center px-6">
       <div className="mb-10 text-center">
         <div className="w-16 h-16 bg-[#0071e3] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
           <Lock size={28} className="text-white" />

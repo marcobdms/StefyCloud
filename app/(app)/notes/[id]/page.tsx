@@ -69,7 +69,7 @@ export default function NoteEditorPage({ params }: { params: Promise<{ id: strin
   }
 
   return (
-    <div className="pt-2 flex flex-col min-h-[calc(100vh-10rem)]">
+    <div className="page-animate pt-2 flex flex-col min-h-[calc(100vh-10rem)]">
       {/* Toolbar */}
       <div className="flex items-center justify-end mb-4">
         <div className="flex items-center gap-3">

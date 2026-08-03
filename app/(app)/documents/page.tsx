@@ -78,7 +78,7 @@ export default function DocumentsPage() {
   if (!loaded) return null;
 
   return (
-    <div className="pt-2">
+    <div className="page-animate pt-2">
       {/* Hidden file input */}
       <input
         ref={fileInputRef}

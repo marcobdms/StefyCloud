@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
-import { ImageIcon, X } from "lucide-react";
+import { Camera, ImageIcon, X } from "lucide-react";
 import { useImages } from "@/hooks/useImages";
 import SearchBar from "@/components/common/SearchBar";
 import EmptyState from "@/components/common/EmptyState";
@@ -13,6 +13,7 @@ export default function ImagesPage() {
   const { images, loaded, uploading, error, clearError, addImage } = useImages();
   const [search, setSearch] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const filtered = images.filter((img) =>
     img.title.toLowerCase().includes(search.toLowerCase())
@@ -30,13 +31,21 @@ export default function ImagesPage() {
   if (!loaded) return null;
 
   return (
-    <div className="pt-2">
+    <div className="page-animate pt-2">
       {/* Hidden file input – multiple images allowed */}
       <input
         ref={fileInputRef}
         type="file"
         accept="image/*"
         multiple
+        className="hidden"
+        onChange={handleFileChange}
+      />
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
         className="hidden"
         onChange={handleFileChange}
       />
@@ -68,19 +77,26 @@ export default function ImagesPage() {
             <Link
               key={img.id}
               href={`/images/${img.id}`}
-              className="relative aspect-square rounded-xl overflow-hidden bg-[#e5e5ea] active:opacity-80 transition-opacity"
+              className="relative aspect-square rounded-xl overflow-hidden bg-[#f5f5f7] p-1.5 transition-[transform,opacity,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:-translate-y-0.5 focus-visible:shadow-md active:translate-y-0 active:scale-[0.98] active:opacity-80"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={img.thumbnail}
                 alt={img.title}
-                className="w-full h-full object-cover"
+                className="h-full w-full rounded-lg object-contain"
               />
             </Link>
           ))}
         </div>
       )}
 
+      <FloatingButton
+        onClick={() => cameraInputRef.current?.click()}
+        label="Tomar foto"
+        disabled={uploading}
+        icon={<Camera size={24} strokeWidth={2} />}
+        position="secondary"
+      />
       <FloatingButton
         onClick={() => fileInputRef.current?.click()}
         label="Subir imagen"

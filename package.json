@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "concurrently -k -n FRONT,BACK -c blue,red \"npm:dev:front\" \"npm:dev:back\"",
+    "dev:front": "next dev",
+    "dev:back": "cd backend && python -m uvicorn app.main:app --reload --port 8001 --env-file .env.local",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
@@ -26,6 +28,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "concurrently": "^9.2.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
     "tailwindcss": "^4",

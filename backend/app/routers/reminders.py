@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from .. import models, schemas
 from ..database import get_db
+from ..trash_utils import create_trash_item, log_activity, serialize_datetime
 
 router = APIRouter(prefix="/api/reminders", tags=["Reminders"])
 
@@ -10,6 +11,14 @@ router = APIRouter(prefix="/api/reminders", tags=["Reminders"])
 def create_reminder(reminder: schemas.ReminderCreate, db: Session = Depends(get_db)):
     db_reminder = models.Reminder(**reminder.model_dump())
     db.add(db_reminder)
+    db.flush()
+    log_activity(
+        db,
+        action="created",
+        item_type="reminder",
+        item_id=db_reminder.id,
+        title=db_reminder.title,
+    )
     db.commit()
     db.refresh(db_reminder)
     return db_reminder
@@ -37,6 +46,24 @@ def delete_reminder(reminder_id: str, db: Session = Depends(get_db)):
     db_reminder = db.query(models.Reminder).filter(models.Reminder.id == reminder_id).first()
     if db_reminder is None:
         raise HTTPException(status_code=404, detail="Reminder not found")
+    create_trash_item(
+        db,
+        item_type="reminder",
+        item_id=db_reminder.id,
+        title=db_reminder.title,
+        payload={
+            "id": db_reminder.id,
+            "title": db_reminder.title,
+            "description": db_reminder.description,
+            "completed": db_reminder.completed,
+            "date": db_reminder.date,
+            "time": db_reminder.time,
+            "timezone": db_reminder.timezone,
+            "priority": db_reminder.priority,
+            "group_name": db_reminder.group_name,
+            "notified_at": serialize_datetime(db_reminder.notified_at),
+        },
+    )
     db.delete(db_reminder)
     db.commit()
     return {"ok": True}

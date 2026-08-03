@@ -4,6 +4,7 @@ from typing import List
 from .. import models, schemas
 from ..database import get_db
 from ..storage import delete_upload, save_upload
+from ..trash_utils import create_trash_item, log_activity, serialize_datetime
 
 router = APIRouter(prefix="/api/images", tags=["Images"])
 ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "gif", "webp", "heic", "heif", "avif"}
@@ -23,6 +24,14 @@ def upload_image(file: UploadFile = File(...), db: Session = Depends(get_db)):
     )
     try:
         db.add(db_img)
+        db.flush()
+        log_activity(
+            db,
+            action="created",
+            item_type="image",
+            item_id=db_img.id,
+            title=db_img.title,
+        )
         db.commit()
         db.refresh(db_img)
     except Exception:
@@ -40,7 +49,20 @@ def delete_image(img_id: str, db: Session = Depends(get_db)):
     db_img = db.query(models.CloudImage).filter(models.CloudImage.id == img_id).first()
     if db_img is None:
         raise HTTPException(status_code=404, detail="Image not found")
-    delete_upload(db_img.url)
+    create_trash_item(
+        db,
+        item_type="image",
+        item_id=db_img.id,
+        title=db_img.title,
+        payload={
+            "id": db_img.id,
+            "title": db_img.title,
+            "url": db_img.url,
+            "thumbnail": db_img.thumbnail,
+            "created_at": serialize_datetime(db_img.created_at),
+        },
+        file_urls=[db_img.url, db_img.thumbnail],
+    )
     db.delete(db_img)
     db.commit()
     return {"ok": True}

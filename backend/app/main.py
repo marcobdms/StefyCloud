@@ -11,7 +11,8 @@ from .dependencies import require_auth
 from .migrations import apply_compatibility_migrations
 from .reminder_scheduler import process_due_reminders
 from .storage import UPLOAD_DIR
-from .routers import notes, reminders, documents, images
+from .trash_utils import cleanup_expired_trash
+from .routers import notes, reminders, documents, images, trash
 from .routers import auth as auth_router
 from .routers import push as push_router
 from .auth import decode_token
@@ -29,6 +30,14 @@ def check_reminders():
         db.close()
 
 
+def check_trash_expiration():
+    db = SessionLocal()
+    try:
+        cleanup_expired_trash(db)
+    finally:
+        db.close()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     del app
@@ -37,6 +46,13 @@ async def lifespan(app: FastAPI):
         check_reminders,
         "interval",
         minutes=1,
+        coalesce=True,
+        max_instances=1,
+    )
+    scheduler.add_job(
+        check_trash_expiration,
+        "interval",
+        hours=6,
         coalesce=True,
         max_instances=1,
     )
@@ -75,6 +91,7 @@ app.include_router(notes.router, dependencies=[Depends(require_auth)])
 app.include_router(reminders.router, dependencies=[Depends(require_auth)])
 app.include_router(documents.router, dependencies=[Depends(require_auth)])
 app.include_router(images.router, dependencies=[Depends(require_auth)])
+app.include_router(trash.router, dependencies=[Depends(require_auth)])
 
 @app.get("/")
 def read_root():

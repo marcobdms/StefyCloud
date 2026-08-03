@@ -36,7 +36,7 @@ export default function ReminderDetailPage({ params }: { params: Promise<{ id: s
   }
 
   return (
-    <div className="pt-2">
+    <div className="page-animate pt-2">
       <div className="flex items-center justify-between mb-5">
         <button
           onClick={() => router.back()}

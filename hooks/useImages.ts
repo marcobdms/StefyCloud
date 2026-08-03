@@ -3,10 +3,7 @@
 import { useState, useEffect } from "react";
 import type { CloudImage } from "@/types";
 import { fetchWithAuth } from "@/lib/auth";
-import { getApiError, resolveApiAssetUrl } from "@/lib/api";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-const BASE_URL = API_URL.endsWith("/api") ? API_URL.slice(0, -4) : API_URL;
+import { API_BASE_URL, API_URL, getApiError, resolveApiAssetUrl } from "@/lib/api";
 
 export function useImages() {
   const [images, setImages] = useState<CloudImage[]>([]);
@@ -22,8 +19,8 @@ export function useImages() {
       const data = await res.json();
       setImages(data.map((img: CloudImage) => ({
         ...img,
-        url: resolveApiAssetUrl(BASE_URL, img.url) ?? "",
-        thumbnail: resolveApiAssetUrl(BASE_URL, img.thumbnail) ?? "",
+        url: resolveApiAssetUrl(API_BASE_URL, img.url) ?? "",
+        thumbnail: resolveApiAssetUrl(API_BASE_URL, img.thumbnail) ?? "",
       })));
     } catch (error) {
       console.error("Failed to fetch images:", error);
@@ -53,8 +50,8 @@ export function useImages() {
       const payload: CloudImage = await res.json();
       const image = {
         ...payload,
-        url: resolveApiAssetUrl(BASE_URL, payload.url) ?? "",
-        thumbnail: resolveApiAssetUrl(BASE_URL, payload.thumbnail) ?? "",
+        url: resolveApiAssetUrl(API_BASE_URL, payload.url) ?? "",
+        thumbnail: resolveApiAssetUrl(API_BASE_URL, payload.thumbnail) ?? "",
       };
       setImages((prev) => [image, ...prev]);
       return true;

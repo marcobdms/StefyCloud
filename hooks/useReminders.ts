@@ -3,8 +3,7 @@
 import { useState, useEffect } from "react";
 import type { Reminder, ReminderGroup, Priority } from "@/types";
 import { getAuthHeaders } from "@/lib/auth";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+import { API_URL } from "@/lib/api";
 
 type ApiReminder = Omit<Reminder, "group"> & {
   groupName?: ReminderGroup;

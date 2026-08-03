@@ -5,29 +5,33 @@ documentos, recordatorios y notificaciones Web Push.
 
 ## Desarrollo local
 
-Frontend:
+Instala las dependencias de ambos entornos:
 
 ```bash
 npm ci
-npm run dev
-```
-
-Backend:
-
-```bash
 cd backend
 python -m venv .venv
 . .venv/bin/activate
 pip install -r requirements.txt
-uvicorn app.main:app --reload
+cd ..
+```
+
+Después, un único comando levanta el frontend en el puerto `3000` y la API de
+Stefany Cloud en el `8001`, con los prefijos `[FRONT]` y `[BACK]`:
+
+```bash
+npm run dev
 ```
 
 Variables mínimas del frontend:
 
 ```dotenv
-NEXT_PUBLIC_API_URL=http://localhost:8000/api
+NEXT_PUBLIC_API_URL=http://localhost:8001/api
 JWT_SECRET_KEY=<same-jwt-secret-as-backend>
 ```
+
+El puerto `8001` mantiene esta API aislada de otros proyectos locales que
+puedan estar usando el `8000`.
 
 Variables del backend:
 

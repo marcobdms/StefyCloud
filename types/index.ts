@@ -41,3 +41,30 @@ export interface Reminder {
   priority: Priority;
   group: ReminderGroup;
 }
+
+export type TrashItemType = "note" | "document" | "image" | "reminder";
+export type ActivityAction =
+  | "created"
+  | "deleted"
+  | "restored"
+  | "permanently_deleted"
+  | "purged";
+
+export interface TrashItem {
+  id: string;
+  itemType: TrashItemType;
+  itemId: string;
+  title: string;
+  deletedAt: string;
+  expiresAt: string;
+  daysLeft: number;
+}
+
+export interface ActivityLog {
+  id: string;
+  action: ActivityAction;
+  itemType: TrashItemType;
+  itemId?: string;
+  title: string;
+  createdAt: string;
+}

@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from .. import models, schemas
 from ..database import get_db
+from ..trash_utils import create_trash_item, log_activity, serialize_datetime
 
 router = APIRouter(prefix="/api/notes", tags=["Notes"])
 
@@ -10,6 +11,14 @@ router = APIRouter(prefix="/api/notes", tags=["Notes"])
 def create_note(note: schemas.NoteCreate, db: Session = Depends(get_db)):
     db_note = models.Note(**note.model_dump())
     db.add(db_note)
+    db.flush()
+    log_activity(
+        db,
+        action="created",
+        item_type="note",
+        item_id=db_note.id,
+        title=db_note.title or "Sin título",
+    )
     db.commit()
     db.refresh(db_note)
     return db_note
@@ -41,6 +50,19 @@ def delete_note(note_id: str, db: Session = Depends(get_db)):
     db_note = db.query(models.Note).filter(models.Note.id == note_id).first()
     if db_note is None:
         raise HTTPException(status_code=404, detail="Note not found")
+    create_trash_item(
+        db,
+        item_type="note",
+        item_id=db_note.id,
+        title=db_note.title or "Sin título",
+        payload={
+            "id": db_note.id,
+            "title": db_note.title,
+            "content": db_note.content,
+            "created_at": serialize_datetime(db_note.created_at),
+            "updated_at": serialize_datetime(db_note.updated_at),
+        },
+    )
     db.delete(db_note)
     db.commit()
     return {"ok": True}

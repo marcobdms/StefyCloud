@@ -3,10 +3,7 @@
 import { useState, useEffect } from "react";
 import type { Document } from "@/types";
 import { fetchWithAuth } from "@/lib/auth";
-import { getApiError, resolveApiAssetUrl } from "@/lib/api";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-const BASE_URL = API_URL.endsWith("/api") ? API_URL.slice(0, -4) : API_URL;
+import { API_BASE_URL, API_URL, getApiError, resolveApiAssetUrl } from "@/lib/api";
 
 export function useDocuments() {
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -22,7 +19,7 @@ export function useDocuments() {
       const data = await res.json();
       setDocuments(data.map((document: Document) => ({
         ...document,
-        url: resolveApiAssetUrl(BASE_URL, document.url),
+        url: resolveApiAssetUrl(API_BASE_URL, document.url),
       })));
     } catch (error) {
       console.error("Failed to fetch documents:", error);
@@ -59,7 +56,7 @@ export function useDocuments() {
       const payload: Document = await res.json();
       const document = {
         ...payload,
-        url: resolveApiAssetUrl(BASE_URL, payload.url),
+        url: resolveApiAssetUrl(API_BASE_URL, payload.url),
       };
       setDocuments((prev) => [document, ...prev]);
       return true;

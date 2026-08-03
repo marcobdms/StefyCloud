@@ -3,8 +3,7 @@
 import { useCallback, useState, useEffect } from "react";
 import type { Note } from "@/types";
 import { getAuthHeaders, fetchWithAuth } from "@/lib/auth";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+import { API_URL } from "@/lib/api";
 
 export function useNotes() {
   const [notes, setNotes] = useState<Note[]>([]);

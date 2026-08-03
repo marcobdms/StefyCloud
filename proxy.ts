@@ -5,14 +5,14 @@ const SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET_KEY ?? "change-me-in-production-please"
 );
 
-// Rutas que requieren estar autenticado
 const PROTECTED = ["/dashboard", "/notes", "/documents", "/images", "/reminders"];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isProtected = PROTECTED.some(
-    (p) => pathname === p || pathname.startsWith(p + "/")
+    (protectedPath) =>
+      pathname === protectedPath || pathname.startsWith(`${protectedPath}/`)
   );
 
   if (!isProtected) return NextResponse.next();
@@ -27,11 +27,16 @@ export async function middleware(request: NextRequest) {
     await jwtVerify(token, SECRET);
     return NextResponse.next();
   } catch {
-    // Token expirado o inválido
     return NextResponse.redirect(new URL("/login", request.url));
   }
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/notes/:path*", "/documents/:path*", "/images/:path*", "/reminders/:path*"],
+  matcher: [
+    "/dashboard/:path*",
+    "/notes/:path*",
+    "/documents/:path*",
+    "/images/:path*",
+    "/reminders/:path*",
+  ],
 };

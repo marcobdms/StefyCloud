@@ -4,6 +4,7 @@ from typing import List
 from .. import models, schemas
 from ..database import get_db
 from ..storage import delete_upload, save_upload
+from ..trash_utils import create_trash_item, log_activity, serialize_datetime
 
 router = APIRouter(prefix="/api/documents", tags=["Documents"])
 ALLOWED_EXTENSIONS = {"pdf", "doc", "docx", "xls", "xlsx", "txt"}
@@ -23,6 +24,14 @@ def upload_document(file: UploadFile = File(...), db: Session = Depends(get_db))
     )
     try:
         db.add(db_doc)
+        db.flush()
+        log_activity(
+            db,
+            action="created",
+            item_type="document",
+            item_id=db_doc.id,
+            title=db_doc.name,
+        )
         db.commit()
         db.refresh(db_doc)
     except Exception:
@@ -40,7 +49,21 @@ def delete_document(doc_id: str, db: Session = Depends(get_db)):
     db_doc = db.query(models.Document).filter(models.Document.id == doc_id).first()
     if db_doc is None:
         raise HTTPException(status_code=404, detail="Document not found")
-    delete_upload(db_doc.url)
+    create_trash_item(
+        db,
+        item_type="document",
+        item_id=db_doc.id,
+        title=db_doc.name,
+        payload={
+            "id": db_doc.id,
+            "name": db_doc.name,
+            "type": db_doc.type,
+            "size_bytes": db_doc.size_bytes,
+            "url": db_doc.url,
+            "updated_at": serialize_datetime(db_doc.updated_at),
+        },
+        file_urls=[db_doc.url],
+    )
     db.delete(db_doc)
     db.commit()
     return {"ok": True}

@@ -8,6 +8,42 @@ def apply_compatibility_migrations() -> None:
     inspector = inspect(engine)
     tables = set(inspector.get_table_names())
     statements: list[str] = []
+    timestamp_type = (
+        "TIMESTAMP WITH TIME ZONE"
+        if engine.dialect.name == "postgresql"
+        else "DATETIME"
+    )
+
+    if "trash_items" not in tables:
+        statements.append(
+            f"""
+            CREATE TABLE trash_items (
+                id VARCHAR PRIMARY KEY,
+                item_type VARCHAR,
+                item_id VARCHAR,
+                title VARCHAR,
+                payload TEXT,
+                file_urls TEXT DEFAULT '[]',
+                deleted_at {timestamp_type} DEFAULT CURRENT_TIMESTAMP,
+                expires_at {timestamp_type}
+            )
+            """
+        )
+
+    if "activity_logs" not in tables:
+        statements.append(
+            f"""
+            CREATE TABLE activity_logs (
+                id VARCHAR PRIMARY KEY,
+                action VARCHAR,
+                item_type VARCHAR,
+                item_id VARCHAR,
+                title VARCHAR,
+                metadata_json TEXT DEFAULT '{{}}',
+                created_at {timestamp_type} DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
 
     if "reminders" in tables:
         reminder_columns = {
@@ -16,11 +52,6 @@ def apply_compatibility_migrations() -> None:
         if "timezone" not in reminder_columns:
             statements.append("ALTER TABLE reminders ADD COLUMN timezone VARCHAR")
         if "notified_at" not in reminder_columns:
-            timestamp_type = (
-                "TIMESTAMP WITH TIME ZONE"
-                if engine.dialect.name == "postgresql"
-                else "DATETIME"
-            )
             statements.append(
                 f"ALTER TABLE reminders ADD COLUMN notified_at {timestamp_type}"
             )
