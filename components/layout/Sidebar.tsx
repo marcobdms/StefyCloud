@@ -1,7 +1,8 @@
 "use client";
 
+import { FormEvent, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Bell,
   ChevronsUpDown,
@@ -37,6 +38,8 @@ function isActivePath(pathname: string, href: string) {
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [search, setSearch] = useState("");
   const { notes } = useNotes();
   const { documents } = useDocuments();
   const { images } = useImages();
@@ -57,6 +60,12 @@ export default function Sidebar() {
     clearAuthCookie();
   };
 
+  const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const query = search.trim();
+    router.push(query ? `/search?q=${encodeURIComponent(query)}` : "/search");
+  };
+
   return (
     <aside className="sc-sidebar app-sidebar-anchor" aria-label="Barra lateral">
       <div className="sc-brandbar">
@@ -71,10 +80,18 @@ export default function Sidebar() {
         </button>
       </div>
 
-      <label className="sc-search">
-        <Search size={17} aria-hidden="true" />
-        <input type="search" placeholder="Buscar" aria-label="Buscar en StefyCloud" />
-      </label>
+      <form className="sc-search" role="search" onSubmit={handleSearchSubmit}>
+        <button className="sc-search-submit" type="submit" aria-label="Buscar">
+          <Search size={17} aria-hidden="true" />
+        </button>
+        <input
+          type="search"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Buscar"
+          aria-label="Buscar en StefyCloud"
+        />
+      </form>
 
       <nav aria-label="Principal">
         {primaryItems.map(({ href, label, icon: Icon, count }) => {

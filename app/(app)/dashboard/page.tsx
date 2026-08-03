@@ -16,8 +16,8 @@ import {
   NotebookPen,
   Plus,
   ScanLine,
-  Search,
   SquarePen,
+  Trash2,
 } from "lucide-react";
 import { useActivityLog } from "@/hooks/useActivityLog";
 import { useDocuments } from "@/hooks/useDocuments";
@@ -146,9 +146,14 @@ export default function DashboardPage() {
             <Plus size={17} aria-hidden="true" />
             <span>Nuevo</span>
           </Link>
-          <button className="sc-control-pill sc-control-pill-icon sc-overview-control" type="button" aria-label="Buscar">
-            <Search size={17} aria-hidden="true" />
-          </button>
+          <Link
+            href="/trash"
+            className="sc-control-pill sc-control-pill-icon sc-overview-control"
+            transitionTypes={["section-nav"]}
+            aria-label="Papelera"
+          >
+            <Trash2 size={17} aria-hidden="true" />
+          </Link>
           <button className="sc-control-pill sc-control-pill-icon sc-overview-control" type="button" onClick={logout} aria-label="Cerrar sesión">
             <Ellipsis size={18} aria-hidden="true" />
           </button>

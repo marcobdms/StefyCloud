@@ -1,10 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import {
-  ChevronLeft,
-  Search,
-} from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 
 const sectionTitles: Record<string, string> = {
   "/notes": "Notas",
@@ -12,6 +9,7 @@ const sectionTitles: Record<string, string> = {
   "/images": "Imágenes",
   "/reminders": "Recordatorios",
   "/trash": "Papelera",
+  "/search": "Buscar",
 };
 
 function getSectionTitle(pathname: string): string | null {
@@ -59,9 +57,6 @@ export default function Header() {
           <div className="sc-toolbar-title sc-section-title">
             <h1>{sectionTitle ?? "Atrás"}</h1>
           </div>
-          <button className="sc-control-pill sc-control-pill-icon" type="button" aria-label="Buscar">
-            <Search size={17} aria-hidden="true" />
-          </button>
         </div>
       )}
     </header>
