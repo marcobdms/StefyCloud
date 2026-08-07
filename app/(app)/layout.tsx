@@ -2,6 +2,7 @@ import { ViewTransition } from "react";
 import Header from "@/components/layout/Header";
 import BottomNav from "@/components/layout/BottomNav";
 import Sidebar from "@/components/layout/Sidebar";
+import FavoriteToast from "@/components/common/FavoriteToast";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -20,6 +21,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </main>
         </section>
         <BottomNav />
+        <FavoriteToast />
       </div>
     </div>
   );

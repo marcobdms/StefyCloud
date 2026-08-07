@@ -8,6 +8,7 @@ const sectionTitles: Record<string, string> = {
   "/documents": "Documentos",
   "/images": "Imágenes",
   "/reminders": "Recordatorios",
+  "/favorites": "Favoritos",
   "/trash": "Papelera",
   "/search": "Buscar",
 };

@@ -85,6 +85,16 @@ class TrashItem(Base):
     expires_at = Column(DateTime(timezone=True), index=True)
 
 
+class FavoriteItem(Base):
+    __tablename__ = "favorite_items"
+
+    id = Column(String, primary_key=True, default=generate_uuid, index=True)
+    item_type = Column(String, index=True)  # note, document, image, reminder
+    item_id = Column(String, index=True)
+    title = Column(String, default="Sin título")
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
 class ActivityLog(Base):
     __tablename__ = "activity_logs"
 

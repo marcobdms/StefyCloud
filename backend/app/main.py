@@ -12,7 +12,7 @@ from .migrations import apply_compatibility_migrations
 from .reminder_scheduler import process_due_reminders
 from .storage import UPLOAD_DIR
 from .trash_utils import cleanup_expired_trash
-from .routers import notes, reminders, documents, images, trash
+from .routers import notes, reminders, documents, images, trash, favorites
 from .routers import auth as auth_router
 from .routers import push as push_router
 from .auth import decode_token
@@ -92,6 +92,7 @@ app.include_router(reminders.router, dependencies=[Depends(require_auth)])
 app.include_router(documents.router, dependencies=[Depends(require_auth)])
 app.include_router(images.router, dependencies=[Depends(require_auth)])
 app.include_router(trash.router, dependencies=[Depends(require_auth)])
+app.include_router(favorites.router, dependencies=[Depends(require_auth)])
 
 @app.get("/")
 def read_root():

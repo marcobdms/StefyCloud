@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from .. import models, schemas
 from ..database import get_db
+from ..favorites_utils import remove_favorites_for_item
 from ..trash_utils import create_trash_item, log_activity, serialize_datetime
 
 router = APIRouter(prefix="/api/reminders", tags=["Reminders"])
@@ -64,6 +65,7 @@ def delete_reminder(reminder_id: str, db: Session = Depends(get_db)):
             "notified_at": serialize_datetime(db_reminder.notified_at),
         },
     )
+    remove_favorites_for_item(db, "reminder", db_reminder.id)
     db.delete(db_reminder)
     db.commit()
     return {"ok": True}

@@ -1,23 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowUpDown,
   Bell,
+  Camera,
   CheckCheck,
   ChevronRight,
   Columns3,
   Ellipsis,
+  File,
   FileText,
   Files,
   Image,
   ImagePlus,
   NotebookPen,
   Plus,
-  ScanLine,
   SquarePen,
+  Star,
   Trash2,
+  X,
 } from "lucide-react";
 import { useActivityLog } from "@/hooks/useActivityLog";
 import { useDocuments } from "@/hooks/useDocuments";
@@ -63,15 +67,127 @@ function formatBytes(bytes: number) {
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [activeView, setActiveView] = useState<"summary" | "activity">("summary");
-  const { notes } = useNotes();
-  const { documents } = useDocuments();
-  const { images } = useImages();
+  const [isNewModalOpen, setIsNewModalOpen] = useState(false);
+  const [isNewModalClosing, setIsNewModalClosing] = useState(false);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
+  const newModalRef = useRef<HTMLDivElement>(null);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isNewModalOpenRef = useRef(false);
+  const isNewModalClosingRef = useRef(false);
+  const { notes, createNote } = useNotes();
+  const { documents, addDocument } = useDocuments();
+  const { images, addImage } = useImages();
   const { reminders } = useReminders();
   const { activity } = useActivityLog(4);
   const logout = () => {
-    fetch(`${API_URL}/auth/logout`, { method: "POST", headers: getAuthHeaders() }).catch(() => {});
+    fetch(`${API_URL}/auth/logout`, { method: "POST", headers: getAuthHeaders() }).catch(() => { });
     clearAuthCookie();
+  };
+
+  const openNewModal = useCallback(() => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+
+    isNewModalOpenRef.current = true;
+    isNewModalClosingRef.current = false;
+    setIsNewModalClosing(false);
+    setIsNewModalOpen(true);
+  }, []);
+
+  const closeNewModal = useCallback(() => {
+    if (!isNewModalOpenRef.current || isNewModalClosingRef.current) return;
+
+    isNewModalClosingRef.current = true;
+    setIsNewModalClosing(true);
+
+    closeTimerRef.current = setTimeout(() => {
+      isNewModalOpenRef.current = false;
+      isNewModalClosingRef.current = false;
+      setIsNewModalOpen(false);
+      setIsNewModalClosing(false);
+      closeTimerRef.current = null;
+    }, 180);
+  }, []);
+
+  useEffect(() => {
+    isNewModalOpenRef.current = isNewModalOpen;
+  }, [isNewModalOpen]);
+
+  useEffect(() => {
+    isNewModalClosingRef.current = isNewModalClosing;
+  }, [isNewModalClosing]);
+
+  useEffect(() => {
+    const header = document.querySelector<HTMLElement>(".app-header-anchor");
+
+    document.documentElement.classList.toggle("sc-new-modal-active", isNewModalOpen);
+    document.body.classList.toggle("sc-new-modal-active", isNewModalOpen);
+    header?.classList.toggle("sc-header-modal-blur", isNewModalOpen);
+
+    return () => {
+      document.documentElement.classList.remove("sc-new-modal-active");
+      document.body.classList.remove("sc-new-modal-active");
+      header?.classList.remove("sc-header-modal-blur");
+    };
+  }, [isNewModalOpen]);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isNewModalOpen) return;
+
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const firstButton = newModalRef.current?.querySelector<HTMLButtonElement>("button");
+    firstButton?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeNewModal();
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      previousFocus?.focus();
+    };
+  }, [closeNewModal, isNewModalOpen]);
+
+  const handleCameraFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    const uploaded = await addImage(file);
+    if (uploaded) router.push("/images");
+  };
+
+  const handlePdfFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    const uploaded = await addDocument(file);
+    if (uploaded) router.push("/documents");
+  };
+
+  const handleCreateNote = async () => {
+    closeNewModal();
+    const note = await createNote();
+    if (note?.id) router.push(`/notes/${note.id}`);
+  };
+
+  const handleOpenReminderForm = () => {
+    closeNewModal();
+    router.push("/reminders?new=1");
   };
 
   const pendingReminders = reminders.filter((reminder) => !reminder.completed).length;
@@ -103,7 +219,7 @@ export default function DashboardPage() {
     },
     {
       href: "/reminders",
-      label: "Pendientes",
+      label: "Recordatorios",
       value: pendingReminders,
       icon: Bell,
       className: "sc-widget-reminders",
@@ -111,8 +227,27 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="sc-dashboard-page page-animate">
-      <div className="sc-overview-head">
+    <div className={`sc-dashboard-page page-animate ${isNewModalOpen ? "sc-new-modal-visible" : ""}`}>
+      <input
+        ref={cameraInputRef}
+        className="sc-hidden-file-input"
+        type="file"
+        accept="image/*"
+        capture="environment"
+        tabIndex={-1}
+        onChange={handleCameraFileChange}
+      />
+      <input
+        ref={pdfInputRef}
+        className="sc-hidden-file-input"
+        type="file"
+        accept="application/pdf,.pdf"
+        tabIndex={-1}
+        onChange={handlePdfFileChange}
+      />
+
+      <div className="sc-dashboard-underlay" aria-hidden={isNewModalOpen || undefined}>
+        <div className="sc-overview-head">
         <div
           className={`sc-segmented ${activeView === "activity" ? "sc-segmented-activity" : ""}`}
           role="group"
@@ -142,10 +277,14 @@ export default function DashboardPage() {
           <button className="sc-control-pill sc-control-pill-icon sc-overview-control sc-desktop-action" type="button" aria-label="Ordenar">
             <ArrowUpDown size={17} aria-hidden="true" />
           </button>
-          <Link href="/notes" className="sc-primary-action sc-primary-action-compact" transitionTypes={["section-nav"]}>
+          <button
+            className="sc-primary-action sc-primary-action-compact"
+            type="button"
+            onClick={openNewModal}
+          >
             <Plus size={17} aria-hidden="true" />
             <span>Nuevo</span>
-          </Link>
+          </button>
           <Link
             href="/trash"
             className="sc-control-pill sc-control-pill-icon sc-overview-control"
@@ -191,13 +330,18 @@ export default function DashboardPage() {
                 <ChevronRight size={16} aria-hidden="true" />
               </Link>
               <Link href="/documents" className="sc-quick-row" transitionTypes={["section-nav"]}>
-                <ScanLine size={17} aria-hidden="true" />
-                <span>Escanear documento</span>
+                <FileText size={17} aria-hidden="true" />
+                <span>Subir documento</span>
                 <ChevronRight size={16} aria-hidden="true" />
               </Link>
               <Link href="/images" className="sc-quick-row" transitionTypes={["section-nav"]}>
                 <ImagePlus size={17} aria-hidden="true" />
                 <span>Subir imagen</span>
+                <ChevronRight size={16} aria-hidden="true" />
+              </Link>
+              <Link href="/favorites" className="sc-quick-row" transitionTypes={["section-nav"]}>
+                <Star size={17} aria-hidden="true" />
+                <span>Favoritos</span>
                 <ChevronRight size={16} aria-hidden="true" />
               </Link>
             </div>
@@ -263,6 +407,95 @@ export default function DashboardPage() {
             )}
           </div>
         </section>
+        )}
+      </div>
+
+      {isNewModalOpen && (
+        <div
+          className={`sc-action-modal-backdrop ${isNewModalClosing ? "sc-action-modal-closing" : ""}`}
+          role="presentation"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) closeNewModal();
+          }}
+        >
+          <div
+            ref={newModalRef}
+            className="sc-action-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="sc-new-action-title"
+          >
+            <div className="sc-action-modal-head">
+              <div>
+                <p id="sc-new-action-title">Nuevo</p>
+                <span>Elige qué quieres añadir</span>
+              </div>
+              <button
+                className="sc-action-modal-close"
+                type="button"
+                onClick={closeNewModal}
+                aria-label="Cerrar menú de nuevo"
+              >
+                <X size={18} aria-hidden="true" />
+              </button>
+            </div>
+
+            <div className="sc-action-modal-list">
+              <button
+                className="sc-action-modal-row"
+                type="button"
+                onClick={() => {
+                  closeNewModal();
+                  cameraInputRef.current?.click();
+                }}
+              >
+                <span className="sc-action-modal-icon sc-action-modal-icon-image">
+                  <Camera size={19} aria-hidden="true" />
+                </span>
+                <span>Tomar foto</span>
+                <ChevronRight size={17} aria-hidden="true" />
+              </button>
+              <button
+                className="sc-action-modal-row"
+                type="button"
+                onClick={() => {
+                  closeNewModal();
+                  pdfInputRef.current?.click();
+                }}
+              >
+                <span className="sc-action-modal-icon sc-action-modal-icon-doc">
+                  <File size={19} aria-hidden="true" />
+                </span>
+                <span>Subir PDF</span>
+                <ChevronRight size={17} aria-hidden="true" />
+              </button>
+              <button
+                className="sc-action-modal-row"
+                type="button"
+                onClick={() => {
+                  void handleCreateNote();
+                }}
+              >
+                <span className="sc-action-modal-icon sc-action-modal-icon-note">
+                  <SquarePen size={19} aria-hidden="true" />
+                </span>
+                <span>Añadir nota</span>
+                <ChevronRight size={17} aria-hidden="true" />
+              </button>
+              <button
+                className="sc-action-modal-row"
+                type="button"
+                onClick={handleOpenReminderForm}
+              >
+                <span className="sc-action-modal-icon sc-action-modal-icon-reminder">
+                  <Bell size={19} aria-hidden="true" />
+                </span>
+                <span>Añadir recordatorio</span>
+                <ChevronRight size={17} aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

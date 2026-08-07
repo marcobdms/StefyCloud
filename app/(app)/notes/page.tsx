@@ -3,11 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { StickyNote, ChevronRight } from "lucide-react";
+import { StickyNote } from "lucide-react";
 import { useNotes } from "@/hooks/useNotes";
+import { useFavorites } from "@/hooks/useFavorites";
 import SearchBar from "@/components/common/SearchBar";
 import EmptyState from "@/components/common/EmptyState";
 import FloatingButton from "@/components/common/FloatingButton";
+import ItemActionsMenu from "@/components/common/ItemActionsMenu";
 import SectionTitle from "@/components/common/SectionTitle";
 
 function formatDate(iso: string) {
@@ -21,7 +23,8 @@ function formatDate(iso: string) {
 
 export default function NotesPage() {
   const router = useRouter();
-  const { notes, loaded, createNote } = useNotes();
+  const { notes, loaded, createNote, deleteNote } = useNotes();
+  const { toggleFavorite, isFavorite } = useFavorites();
   const [search, setSearch] = useState("");
 
   const filtered = notes.filter(
@@ -51,27 +54,41 @@ export default function NotesPage() {
           />
         </div>
       ) : (
-        <div className="mt-4 bg-white rounded-[20px] border border-[#e5e5ea] shadow-sm overflow-hidden">
-          {filtered.map((note, i) => (
-            <Link
-              key={note.id}
-              href={`/notes/${note.id}`}
-              className={`flex items-center gap-3 px-4 py-4 active:bg-[#f5f5f7] transition-colors ${
-                i < filtered.length - 1 ? "border-b border-[#f2f2f7]" : ""
-              }`}
-            >
-              <div className="flex-1 min-w-0">
-                <p className="text-[15px] font-semibold text-[#1d1d1f] truncate">
-                  {note.title || "Sin título"}
-                </p>
-                <p className="text-sm text-[#6e6e73] truncate mt-0.5">
-                  <span className="text-[#8e8e93] mr-2">{formatDate(note.updatedAt)}</span>
-                  {note.content.split("\n")[0] || "Sin contenido"}
-                </p>
+        <div className="mt-4 bg-white rounded-[20px] border border-[#e5e5ea] shadow-sm overflow-visible">
+          {filtered.map((note, i) => {
+            const favorite = isFavorite("note", note.id);
+
+            return (
+              <div
+                key={note.id}
+                className={`flex items-center gap-3 px-4 py-4 active:bg-[#f5f5f7] transition-colors ${
+                  i < filtered.length - 1 ? "border-b border-[#f2f2f7]" : ""
+                }`}
+              >
+                <Link href={`/notes/${note.id}`} className="flex-1 min-w-0">
+                  <p className="text-[15px] font-semibold text-[#1d1d1f] truncate">
+                    {note.title || "Sin título"}
+                  </p>
+                  <p className="text-sm text-[#6e6e73] truncate mt-0.5">
+                    <span className="text-[#8e8e93] mr-2">{formatDate(note.updatedAt)}</span>
+                    {note.content.split("\n")[0] || "Sin contenido"}
+                  </p>
+                </Link>
+                <ItemActionsMenu
+                  label={note.title || "nota"}
+                  viewHref={`/notes/${note.id}`}
+                  favoriteActive={favorite}
+                  favoriteLabel={favorite ? "Quitar de favoritos" : "Añadir a favoritos"}
+                  onFavorite={() => toggleFavorite("note", note.id)}
+                  onDelete={async () => {
+                    if (window.confirm(`¿Eliminar "${note.title || "Sin título"}"?`)) {
+                      await deleteNote(note.id);
+                    }
+                  }}
+                />
               </div>
-              <ChevronRight size={16} className="text-[#c7c7cc] flex-shrink-0" />
-            </Link>
-          ))}
+            );
+          })}
         </div>
       )}
 

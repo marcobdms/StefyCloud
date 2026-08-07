@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
-import { Bell, BellRing, ChevronRight, Circle, CheckCircle2, X } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { Bell, BellRing, Circle, CheckCircle2, X } from "lucide-react";
+import ItemActionsMenu from "@/components/common/ItemActionsMenu";
+import { useFavorites } from "@/hooks/useFavorites";
 import { useReminders } from "@/hooks/useReminders";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import type { Reminder, ReminderGroup, Priority } from "@/types";
@@ -32,9 +35,15 @@ function todayISO() {
 function ReminderItem({
   reminder,
   onToggle,
+  onFavorite,
+  favoriteActive,
+  onDelete,
 }: {
   reminder: Reminder;
   onToggle: (id: string) => void;
+  onFavorite: () => void | Promise<unknown>;
+  favoriteActive: boolean;
+  onDelete: () => void | Promise<unknown>;
 }) {
   return (
     <div className="flex items-center gap-3 px-4 py-3.5">
@@ -65,8 +74,15 @@ function ReminderItem({
           className="w-2 h-2 rounded-full"
           style={{ backgroundColor: priorityColors[reminder.priority] }}
         />
-        <ChevronRight size={15} className="text-[#c7c7cc]" />
       </div>
+      <ItemActionsMenu
+        label={reminder.title}
+        viewHref={`/reminders/${reminder.id}`}
+        favoriteActive={favoriteActive}
+        favoriteLabel={favoriteActive ? "Quitar de favoritos" : "Añadir a favoritos"}
+        onFavorite={onFavorite}
+        onDelete={onDelete}
+      />
     </div>
   );
 }
@@ -164,10 +180,18 @@ function NewReminderForm({
   );
 }
 
-export default function RemindersPage() {
-  const { reminders, loaded, createReminder, toggleCompleted } = useReminders();
+function RemindersPageContent() {
+  const { reminders, loaded, createReminder, toggleCompleted, deleteReminder } = useReminders();
+  const { toggleFavorite, isFavorite } = useFavorites();
   const push = usePushNotifications();
+  const searchParams = useSearchParams();
   const [showForm, setShowForm] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get("new") === "1") {
+      setShowForm(true);
+    }
+  }, [searchParams]);
 
   const groups: ReminderGroup[] = ["today", "tomorrow", "upcoming"];
   const grouped = groups
@@ -252,13 +276,23 @@ export default function RemindersPage() {
             <h3 className="text-xs font-semibold text-[#6e6e73] uppercase tracking-wide mb-2 px-1">
               {groupLabels[group]}
             </h3>
-            <div className="bg-white rounded-[20px] border border-[#e5e5ea] shadow-sm overflow-hidden">
+            <div className="bg-white rounded-[20px] border border-[#e5e5ea] shadow-sm overflow-visible">
               {items.map((reminder, i) => (
                 <div
                   key={reminder.id}
                   className={i < items.length - 1 ? "border-b border-[#f2f2f7]" : ""}
                 >
-                  <ReminderItem reminder={reminder} onToggle={toggleCompleted} />
+                  <ReminderItem
+                    reminder={reminder}
+                    onToggle={toggleCompleted}
+                    favoriteActive={isFavorite("reminder", reminder.id)}
+                    onFavorite={() => toggleFavorite("reminder", reminder.id)}
+                    onDelete={async () => {
+                      if (window.confirm(`¿Eliminar "${reminder.title}"?`)) {
+                        await deleteReminder(reminder.id);
+                      }
+                    }}
+                  />
                 </div>
               ))}
             </div>
@@ -268,5 +302,13 @@ export default function RemindersPage() {
 
       <FloatingButton onClick={() => setShowForm(true)} label="Nuevo recordatorio" />
     </div>
+  );
+}
+
+export default function RemindersPage() {
+  return (
+    <Suspense fallback={null}>
+      <RemindersPageContent />
+    </Suspense>
   );
 }

@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from .. import models, schemas
 from ..database import get_db
+from ..favorites_utils import remove_favorites_for_item
 from ..trash_utils import create_trash_item, log_activity, serialize_datetime
 
 router = APIRouter(prefix="/api/notes", tags=["Notes"])
@@ -63,6 +64,7 @@ def delete_note(note_id: str, db: Session = Depends(get_db)):
             "updated_at": serialize_datetime(db_note.updated_at),
         },
     )
+    remove_favorites_for_item(db, "note", db_note.id)
     db.delete(db_note)
     db.commit()
     return {"ok": True}

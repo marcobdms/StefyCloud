@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from .. import models, schemas
 from ..database import get_db
+from ..favorites_utils import remove_favorites_for_item
 from ..storage import delete_upload, save_upload
 from ..trash_utils import create_trash_item, log_activity, serialize_datetime
 
@@ -63,6 +64,7 @@ def delete_image(img_id: str, db: Session = Depends(get_db)):
         },
         file_urls=[db_img.url, db_img.thumbnail],
     )
+    remove_favorites_for_item(db, "image", db_img.id)
     db.delete(db_img)
     db.commit()
     return {"ok": True}

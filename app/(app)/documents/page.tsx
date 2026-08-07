@@ -1,14 +1,15 @@
 "use client";
 
-import { useRef } from "react";
-import { Download, Eye, FileText, FileSpreadsheet, File, Trash2, X } from "lucide-react";
-import { useDocuments } from "@/hooks/useDocuments";
-import type { Document } from "@/types";
-import SearchBar from "@/components/common/SearchBar";
+import { useRef, useState } from "react";
+import { File, FileSpreadsheet, FileText, X } from "lucide-react";
 import EmptyState from "@/components/common/EmptyState";
 import FloatingButton from "@/components/common/FloatingButton";
+import ItemActionsMenu from "@/components/common/ItemActionsMenu";
+import SearchBar from "@/components/common/SearchBar";
 import SectionTitle from "@/components/common/SectionTitle";
-import { useState } from "react";
+import { useDocuments } from "@/hooks/useDocuments";
+import { useFavorites } from "@/hooks/useFavorites";
+import type { Document } from "@/types";
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -34,6 +35,7 @@ function DocIcon({ type }: { type: Document["type"] }) {
     txt: "#8e8e93",
   };
   const color = colors[type];
+
   return (
     <div
       className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -61,25 +63,24 @@ export default function DocumentsPage() {
     addDocument,
     deleteDocument,
   } = useDocuments();
+  const { toggleFavorite, isFavorite } = useFavorites();
   const [search, setSearch] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const filtered = documents.filter((d) =>
-    d.name.toLowerCase().includes(search.toLowerCase())
+  const filtered = documents.filter((doc) =>
+    doc.name.toLowerCase().includes(search.toLowerCase()),
   );
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
     if (file) await addDocument(file);
-    // Reset input so same file can be re-selected
-    e.target.value = "";
+    event.target.value = "";
   };
 
   if (!loaded) return null;
 
   return (
     <div className="page-animate pt-2">
-      {/* Hidden file input */}
       <input
         ref={fileInputRef}
         type="file"
@@ -110,61 +111,41 @@ export default function DocumentsPage() {
           />
         </div>
       ) : (
-        <div className="mt-4 bg-white rounded-[20px] border border-[#e5e5ea] shadow-sm overflow-hidden">
-          {filtered.map((doc, i) => (
-            <div
-              key={doc.id}
-              className={`flex items-center gap-3 px-4 py-3.5 ${
-                i < filtered.length - 1 ? "border-b border-[#f2f2f7]" : ""
-              }`}
-            >
-              <DocIcon type={doc.type} />
-              <div className="flex-1 min-w-0">
-                <p className="text-[15px] font-medium text-[#1d1d1f] truncate">{doc.name}</p>
-                <p className="text-xs text-[#6e6e73] mt-0.5">
-                  {formatDate(doc.updatedAt)} · {formatSize(doc.sizeBytes)}
-                </p>
-              </div>
-              <div className="flex items-center gap-1 flex-shrink-0">
-                {doc.url && (
-                  <a
-                    href={doc.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-label={`Abrir ${doc.name}`}
-                    title="Ver documento"
-                    className="w-8 h-8 rounded-lg flex items-center justify-center text-[#0071e3] active:bg-[#e8f0fd]"
-                  >
-                    <Eye size={17} />
-                  </a>
-                )}
-                {doc.url && (
-                  <a
-                    href={doc.url}
-                    download={doc.name}
-                    aria-label={`Descargar ${doc.name}`}
-                    title="Descargar"
-                    className="w-8 h-8 rounded-lg flex items-center justify-center text-[#0071e3] active:bg-[#e8f0fd]"
-                  >
-                    <Download size={17} />
-                  </a>
-                )}
-                <button
-                  onClick={async () => {
+        <div className="mt-4 bg-white rounded-[20px] border border-[#e5e5ea] shadow-sm overflow-visible">
+          {filtered.map((doc, index) => {
+            const favorite = isFavorite("document", doc.id);
+
+            return (
+              <div
+                key={doc.id}
+                className={`flex items-center gap-3 px-4 py-3.5 ${
+                  index < filtered.length - 1 ? "border-b border-[#f2f2f7]" : ""
+                }`}
+              >
+                <DocIcon type={doc.type} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[15px] font-medium text-[#1d1d1f] truncate">{doc.name}</p>
+                  <p className="text-xs text-[#6e6e73] mt-0.5">
+                    {formatDate(doc.updatedAt)} · {formatSize(doc.sizeBytes)}
+                  </p>
+                </div>
+                <ItemActionsMenu
+                  label={doc.name}
+                  viewHref={doc.url}
+                  viewExternal
+                  favoriteActive={favorite}
+                  favoriteLabel={favorite ? "Quitar de favoritos" : "Añadir a favoritos"}
+                  deleting={deletingId === doc.id}
+                  onFavorite={() => toggleFavorite("document", doc.id)}
+                  onDelete={async () => {
                     if (window.confirm(`¿Eliminar "${doc.name}"?`)) {
                       await deleteDocument(doc.id);
                     }
                   }}
-                  disabled={deletingId === doc.id}
-                  aria-label={`Eliminar ${doc.name}`}
-                  title="Eliminar"
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-[#FF3B30] active:bg-[#ffebe9] disabled:opacity-40"
-                >
-                  <Trash2 size={16} />
-                </button>
+                />
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

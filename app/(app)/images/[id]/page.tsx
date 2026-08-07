@@ -2,13 +2,15 @@
 
 import { use, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Trash2 } from "lucide-react";
+import { Star, Trash2 } from "lucide-react";
+import { useFavorites } from "@/hooks/useFavorites";
 import { useImages } from "@/hooks/useImages";
 
 export default function ImageViewerPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
   const { images, loaded, deletingId, error, deleteImage } = useImages();
+  const { isFavorite, toggleFavorite, actingId } = useFavorites();
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const image = images.find((img) => img.id === id);
@@ -51,27 +53,38 @@ export default function ImageViewerPage({ params }: { params: Promise<{ id: stri
             })}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={async () => {
-            if (!confirmingDelete) {
-              setConfirmingDelete(true);
-              return;
-            }
-            if (await deleteImage(id)) router.replace("/images");
-          }}
-          disabled={deletingId === id}
-          className="flex min-h-11 min-w-11 flex-shrink-0 items-center justify-center rounded-full px-3 text-[#FF3B30] transition-[background-color,opacity] hover:bg-[#ffebe9] focus-visible:bg-[#ffebe9] active:opacity-60 disabled:opacity-40"
-          aria-label={confirmingDelete ? "Confirmar eliminar imagen" : "Eliminar imagen"}
-        >
-          {confirmingDelete ? (
-            <span className="text-sm font-semibold">
-              {deletingId === id ? "Eliminando..." : "Confirmar"}
-            </span>
-          ) : (
-            <Trash2 size={17} />
-          )}
-        </button>
+        <div className="flex flex-shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void toggleFavorite("image", id)}
+            disabled={actingId === `image:${id}`}
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-full px-3 text-[#FF9500] transition-[background-color,opacity] hover:bg-[#fff3df] focus-visible:bg-[#fff3df] active:opacity-60 disabled:opacity-40"
+            aria-label={isFavorite("image", id) ? "Quitar imagen de favoritos" : "Añadir imagen a favoritos"}
+          >
+            <Star size={18} fill={isFavorite("image", id) ? "currentColor" : "none"} />
+          </button>
+          <button
+            type="button"
+            onClick={async () => {
+              if (!confirmingDelete) {
+                setConfirmingDelete(true);
+                return;
+              }
+              if (await deleteImage(id)) router.replace("/images");
+            }}
+            disabled={deletingId === id}
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-full px-3 text-[#FF3B30] transition-[background-color,opacity] hover:bg-[#ffebe9] focus-visible:bg-[#ffebe9] active:opacity-60 disabled:opacity-40"
+            aria-label={confirmingDelete ? "Confirmar eliminar imagen" : "Eliminar imagen"}
+          >
+            {confirmingDelete ? (
+              <span className="text-sm font-semibold">
+                {deletingId === id ? "Eliminando..." : "Confirmar"}
+              </span>
+            ) : (
+              <Trash2 size={17} />
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );

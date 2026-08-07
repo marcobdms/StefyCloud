@@ -38,6 +38,12 @@ def reminder_due_at_utc(
     return local_due_at.astimezone(timezone.utc)
 
 
+def reminder_notification_body(reminder: models.Reminder) -> str:
+    if reminder.time:
+        return f"recordatorio de las {reminder.time}"
+    return "recordatorio programado"
+
+
 def process_due_reminders(
     db: Session,
     now: datetime | None = None,
@@ -77,8 +83,8 @@ def process_due_reminders(
         for subscription in subscriptions:
             result = send_push(
                 subscription,
-                f"Recordatorio: {reminder.title}",
-                reminder.description or "Es hora de tu recordatorio",
+                reminder.title,
+                reminder_notification_body(reminder),
                 f"/reminders/{reminder.id}",
             )
             if result == "sent":

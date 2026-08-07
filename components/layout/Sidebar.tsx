@@ -114,10 +114,15 @@ export default function Sidebar() {
 
       <section className="sc-sidebar-section" aria-label="Biblioteca">
         <div className="sc-section-label">Biblioteca</div>
-        <button className="sc-side-row" type="button">
+        <Link
+          href="/favorites"
+          transitionTypes={["section-nav"]}
+          aria-current={isActivePath(pathname, "/favorites") ? "page" : undefined}
+          className={`sc-side-row ${isActivePath(pathname, "/favorites") ? "sc-side-row-selected" : ""}`}
+        >
           <Star size={17} aria-hidden="true" />
           <span>Favoritos</span>
-        </button>
+        </Link>
         <Link
           href="/trash"
           transitionTypes={["section-nav"]}

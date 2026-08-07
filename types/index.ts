@@ -68,3 +68,12 @@ export interface ActivityLog {
   title: string;
   createdAt: string;
 }
+
+export interface FavoriteItem {
+  id: string;
+  itemType: TrashItemType;
+  itemId: string;
+  title: string;
+  targetUrl?: string;
+  createdAt: string;
+}

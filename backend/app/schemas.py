@@ -104,3 +104,16 @@ class ActivityLog(CamelModel):
     item_id: Optional[str] = None
     title: str = "Sin título"
     created_at: datetime
+
+# ================= FAVORITES =================
+class FavoriteCreate(BaseModel):
+    item_type: str
+    item_id: str
+
+class FavoriteItem(CamelModel):
+    id: str
+    item_type: str
+    item_id: str
+    title: str = "Sin título"
+    target_url: Optional[str] = None
+    created_at: datetime

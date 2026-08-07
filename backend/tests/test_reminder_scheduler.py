@@ -83,6 +83,8 @@ class ReminderSchedulerTests(unittest.TestCase):
         self.assertEqual(first_run, 1)
         self.assertEqual(second_run, 0)
         self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0][1], "Tomar medicina")
+        self.assertEqual(calls[0][2], "recordatorio de las 09:00")
         self.assertIsNotNone(reminder.notified_at)
 
 

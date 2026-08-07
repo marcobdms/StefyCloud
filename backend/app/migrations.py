@@ -45,6 +45,19 @@ def apply_compatibility_migrations() -> None:
             """
         )
 
+    if "favorite_items" not in tables:
+        statements.append(
+            f"""
+            CREATE TABLE favorite_items (
+                id VARCHAR PRIMARY KEY,
+                item_type VARCHAR,
+                item_id VARCHAR,
+                title VARCHAR,
+                created_at {timestamp_type} DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+
     if "reminders" in tables:
         reminder_columns = {
             column["name"] for column in inspector.get_columns("reminders")
