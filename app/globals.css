@@ -981,6 +981,10 @@
   color: #0071e3;
 }
 
+.sc-item-action-download {
+  color: #0071e3;
+}
+
 .sc-item-action-favorite {
   color: #ff9500;
 }
@@ -1012,6 +1016,10 @@
   pointer-events: none;
 }
 
+.sc-mini-toast-leaving {
+  animation: sc-mini-toast-out 360ms ease both;
+}
+
 @keyframes sc-mini-toast-in {
   from {
     opacity: 0;
@@ -1020,6 +1028,17 @@
   to {
     opacity: 1;
     transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+@keyframes sc-mini-toast-out {
+  from {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px) scale(0.98);
   }
 }
 
@@ -1712,6 +1731,10 @@
     height: calc(103px + env(safe-area-inset-bottom, 0px));
     padding: 16px 16px calc(25px + env(safe-area-inset-bottom, 0px));
     pointer-events: none;
+    /* Promote to GPU compositing layer to prevent iOS Safari position:fixed
+       jank when the URL bar shows/hides and during View Transitions. */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
   }
 
   .sc-mobile-tabbar {
@@ -1729,7 +1752,8 @@
     box-shadow: 0 10px 30px rgba(31, 48, 72, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.86);
     backdrop-filter: blur(24px) saturate(160%);
     -webkit-backdrop-filter: blur(24px) saturate(160%);
-    overflow: hidden;
+    /* overflow:hidden removed — border-radius already provides visual clipping
+       and hidden was causing the pill indicator to clip mid-animation in Safari. */
     pointer-events: auto;
   }
 
@@ -1742,6 +1766,9 @@
     border-radius: 999px;
     transform: translateX(-120%);
     transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+    /* Promote pill indicator to compositor layer so it animates
+       independently of main-thread paints during navigations. */
+    will-change: transform;
   }
 
   .sc-mobile-tabbar-active-0::before {

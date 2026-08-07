@@ -114,6 +114,7 @@ export default function DocumentsPage() {
         <div className="mt-4 bg-white rounded-[20px] border border-[#e5e5ea] shadow-sm overflow-visible">
           {filtered.map((doc, index) => {
             const favorite = isFavorite("document", doc.id);
+            const canPreview = doc.type === "pdf";
 
             return (
               <div
@@ -131,8 +132,10 @@ export default function DocumentsPage() {
                 </div>
                 <ItemActionsMenu
                   label={doc.name}
-                  viewHref={doc.url}
+                  viewHref={canPreview ? doc.url : undefined}
                   viewExternal
+                  downloadHref={doc.url}
+                  downloadFilename={doc.name}
                   favoriteActive={favorite}
                   favoriteLabel={favorite ? "Quitar de favoritos" : "Añadir a favoritos"}
                   deleting={deletingId === doc.id}

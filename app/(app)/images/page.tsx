@@ -9,6 +9,26 @@ import EmptyState from "@/components/common/EmptyState";
 import FloatingButton from "@/components/common/FloatingButton";
 import SectionTitle from "@/components/common/SectionTitle";
 
+/** Placeholder grid shown while images are fetching.
+ *  Renders immediately so the View Transition paints content
+ *  without waiting for the network request to complete. */
+function ImagesSkeleton() {
+  return (
+    <div
+      className="mt-4 grid grid-cols-3 gap-1.5"
+      aria-label="Cargando imágenes"
+      aria-busy="true"
+    >
+      {Array.from({ length: 9 }).map((_, i) => (
+        <div
+          key={i}
+          className="aspect-square rounded-xl animate-pulse bg-[rgba(118,118,128,0.10)]"
+        />
+      ))}
+    </div>
+  );
+}
+
 export default function ImagesPage() {
   const { images, loaded, uploading, error, clearError, addImage } = useImages();
   const [search, setSearch] = useState("");
@@ -28,11 +48,13 @@ export default function ImagesPage() {
     e.target.value = "";
   };
 
-  if (!loaded) return null;
+  // NOTE: we intentionally do NOT guard on `loaded` before rendering —
+  // the skeleton above provides immediate visual feedback so the page
+  // transition completes without waiting for the network request.
 
   return (
     <div className="page-animate pt-2">
-      {/* Hidden file input – multiple images allowed */}
+      {/* Hidden file inputs – multiple images allowed */}
       <input
         ref={fileInputRef}
         type="file"
@@ -63,7 +85,9 @@ export default function ImagesPage() {
       )}
       {uploading && <p className="mt-3 text-sm text-[#6e6e73]">Subiendo imagen...</p>}
 
-      {filtered.length === 0 ? (
+      {!loaded ? (
+        <ImagesSkeleton />
+      ) : filtered.length === 0 ? (
         <div className="mt-4">
           <EmptyState
             icon={ImageIcon}
@@ -83,6 +107,8 @@ export default function ImagesPage() {
               <img
                 src={img.thumbnail}
                 alt={img.title}
+                loading="lazy"
+                decoding="async"
                 className="h-full w-full rounded-lg object-contain"
               />
             </Link>

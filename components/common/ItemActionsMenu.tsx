@@ -2,12 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Ellipsis, Eye, Star, Trash2 } from "lucide-react";
+import { Download, Ellipsis, Eye, Star, Trash2 } from "lucide-react";
 
 interface ItemActionsMenuProps {
   label: string;
   viewHref?: string;
   viewExternal?: boolean;
+  downloadHref?: string;
+  downloadFilename?: string;
   favoriteActive?: boolean;
   favoriteDisabled?: boolean;
   favoriteLabel?: string;
@@ -21,6 +23,8 @@ export default function ItemActionsMenu({
   label,
   viewHref,
   viewExternal = false,
+  downloadHref,
+  downloadFilename,
   favoriteActive = false,
   favoriteDisabled = false,
   favoriteLabel = "Añadir a favoritos",
@@ -101,6 +105,19 @@ export default function ItemActionsMenu({
                 <span>Visualizar</span>
               </Link>
             )
+          ) : null}
+
+          {downloadHref ? (
+            <a
+              href={downloadHref}
+              download={downloadFilename}
+              className="sc-item-action sc-item-action-download"
+              role="menuitem"
+              onClick={() => setOpen(false)}
+            >
+              <Download size={16} aria-hidden="true" />
+              <span>Descargar</span>
+            </a>
           ) : null}
 
           <button
