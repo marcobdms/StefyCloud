@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Download, Ellipsis, Eye, Star, Trash2 } from "lucide-react";
 
@@ -34,18 +34,30 @@ export default function ItemActionsMenu({
   onDelete,
 }: ItemActionsMenuProps) {
   const [open, setOpen] = useState(false);
+  const [closing, setClosing] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const closeMenu = useCallback(() => {
+    if (!open || closing) return;
+    setClosing(true);
+    closeTimerRef.current = setTimeout(() => {
+      setOpen(false);
+      setClosing(false);
+      closeTimerRef.current = null;
+    }, 150);
+  }, [closing, open]);
 
   useEffect(() => {
     if (!open) return;
 
     const handlePointerDown = (event: PointerEvent) => {
       if (!menuRef.current?.contains(event.target as Node)) {
-        setOpen(false);
+        closeMenu();
       }
     };
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") closeMenu();
     };
 
     document.addEventListener("pointerdown", handlePointerDown);
@@ -55,16 +67,33 @@ export default function ItemActionsMenu({
       document.removeEventListener("pointerdown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [open]);
+  }, [closeMenu, open]);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    };
+  }, []);
+
+  const toggleMenu = () => {
+    if (open) {
+      closeMenu();
+      return;
+    }
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = null;
+    setClosing(false);
+    setOpen(true);
+  };
 
   const handleFavorite = async () => {
     await onFavorite();
-    setOpen(false);
+    closeMenu();
   };
 
   const handleDelete = async () => {
     await onDelete();
-    setOpen(false);
+    closeMenu();
   };
 
   return (
@@ -74,13 +103,17 @@ export default function ItemActionsMenu({
         className="sc-item-actions-trigger"
         aria-label={`Abrir acciones de ${label}`}
         aria-expanded={open}
-        onClick={() => setOpen((current) => !current)}
+        onClick={toggleMenu}
       >
         <Ellipsis size={20} aria-hidden="true" />
       </button>
 
       {open && (
-        <div className="sc-item-actions-popover" role="menu" aria-label={`Acciones de ${label}`}>
+        <div
+          className={`sc-item-actions-popover ${closing ? "sc-item-actions-popover-closing" : ""}`}
+          role="menu"
+          aria-label={`Acciones de ${label}`}
+        >
           {viewHref ? (
             viewExternal ? (
               <a
@@ -89,7 +122,7 @@ export default function ItemActionsMenu({
                 rel="noreferrer"
                 className="sc-item-action sc-item-action-view"
                 role="menuitem"
-                onClick={() => setOpen(false)}
+                onClick={closeMenu}
               >
                 <Eye size={16} aria-hidden="true" />
                 <span>Visualizar</span>
@@ -99,7 +132,7 @@ export default function ItemActionsMenu({
                 href={viewHref}
                 className="sc-item-action sc-item-action-view"
                 role="menuitem"
-                onClick={() => setOpen(false)}
+                onClick={closeMenu}
               >
                 <Eye size={16} aria-hidden="true" />
                 <span>Visualizar</span>
@@ -113,7 +146,7 @@ export default function ItemActionsMenu({
               download={downloadFilename}
               className="sc-item-action sc-item-action-download"
               role="menuitem"
-              onClick={() => setOpen(false)}
+              onClick={closeMenu}
             >
               <Download size={16} aria-hidden="true" />
               <span>Descargar</span>
@@ -123,8 +156,8 @@ export default function ItemActionsMenu({
           <button
             type="button"
             className="sc-item-action sc-item-action-favorite"
-            role="menuitem"
-            aria-pressed={favoriteActive}
+            role="menuitemcheckbox"
+            aria-checked={favoriteActive}
             disabled={favoriteDisabled}
             onClick={() => void handleFavorite()}
           >

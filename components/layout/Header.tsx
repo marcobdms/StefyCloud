@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 
@@ -21,11 +22,21 @@ function getSectionTitle(pathname: string): string | null {
   return sectionTitles[base] ?? null;
 }
 
+function getBackHref(pathname: string): string | null {
+  if (pathname === "/dashboard") return null;
+
+  const base = "/" + pathname.split("/")[1];
+  if (base !== pathname && sectionTitles[base]) return base;
+
+  return "/dashboard";
+}
+
 export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const isDashboard = pathname === "/dashboard";
   const sectionTitle = getSectionTitle(pathname);
+  const backHref = getBackHref(pathname);
 
   return (
     <header className={`sc-toolbar app-header-anchor ${isDashboard ? "sc-toolbar-dashboard" : "sc-toolbar-compact sc-toolbar-section"}`}>
@@ -52,9 +63,20 @@ export default function Header() {
         </div>
       ) : (
         <div className="sc-section-toolbar-row">
-          <button className="sc-control-pill sc-control-pill-icon sc-back-pill" type="button" onClick={() => router.back()} aria-label="Volver">
-            <ChevronLeft size={22} aria-hidden="true" />
-          </button>
+          {backHref ? (
+            <Link
+              href={backHref}
+              transitionTypes={["nav-back"]}
+              className="sc-control-pill sc-control-pill-icon sc-back-pill"
+              aria-label="Volver"
+            >
+              <ChevronLeft size={22} aria-hidden="true" />
+            </Link>
+          ) : (
+            <button className="sc-control-pill sc-control-pill-icon sc-back-pill" type="button" onClick={() => router.back()} aria-label="Volver">
+              <ChevronLeft size={22} aria-hidden="true" />
+            </button>
+          )}
           <div className="sc-toolbar-title sc-section-title">
             <h1>{sectionTitle ?? "Atrás"}</h1>
           </div>

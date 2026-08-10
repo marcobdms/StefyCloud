@@ -15,7 +15,7 @@ import SectionTitle from "@/components/common/SectionTitle";
 import { useDocuments } from "@/hooks/useDocuments";
 import { useImages } from "@/hooks/useImages";
 import { useNotes } from "@/hooks/useNotes";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useState } from "react";
 
 type SearchResult = {
   id: string;
@@ -87,16 +87,17 @@ function SearchResultRow({ result }: { result: SearchResult }) {
 function SearchPageContent() {
   const searchParams = useSearchParams();
   const queryFromUrl = searchParams.get("q") ?? "";
-  const [search, setSearch] = useState(queryFromUrl);
+  const [searchState, setSearchState] = useState(() => ({
+    source: queryFromUrl,
+    value: queryFromUrl,
+  }));
   const { notes, loaded: notesLoaded } = useNotes();
   const { documents, loaded: documentsLoaded } = useDocuments();
   const { images, loaded: imagesLoaded } = useImages();
+  const search = searchState.source === queryFromUrl ? searchState.value : queryFromUrl;
   const term = normalizeSearch(search.trim());
   const isLoaded = notesLoaded && documentsLoaded && imagesLoaded;
-
-  useEffect(() => {
-    setSearch(queryFromUrl);
-  }, [queryFromUrl]);
+  const updateSearch = (value: string) => setSearchState({ source: queryFromUrl, value });
 
   const groups: SearchGroup[] = term
     ? [
@@ -154,13 +155,13 @@ function SearchPageContent() {
         <input
           type="search"
           value={search}
-          onChange={(event) => setSearch(event.target.value)}
+          onChange={(event) => updateSearch(event.target.value)}
           placeholder="Buscar notas, docs o imágenes..."
           aria-label="Buscar por título, nombre o contenido"
           autoFocus
         />
         {search ? (
-          <button type="button" onClick={() => setSearch("")} aria-label="Borrar búsqueda">
+          <button type="button" onClick={() => updateSearch("")} aria-label="Borrar búsqueda">
             <X size={17} aria-hidden="true" />
           </button>
         ) : null}

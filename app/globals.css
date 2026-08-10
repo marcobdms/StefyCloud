@@ -98,12 +98,28 @@
 }
 
 /* Route transitions use the native View Transitions integration in Next.js. */
-::view-transition-old(.page-transition) {
-  animation: route-exit 140ms ease-in both;
+::view-transition-old(.section-nav) {
+  animation: route-section-exit 130ms ease-in both;
 }
 
-::view-transition-new(.page-transition) {
-  animation: route-enter 240ms cubic-bezier(0.22, 1, 0.36, 1) 40ms both;
+::view-transition-new(.section-nav) {
+  animation: route-section-enter 180ms cubic-bezier(0.22, 1, 0.36, 1) 130ms both;
+}
+
+::view-transition-old(.nav-forward) {
+  animation: route-forward-exit 260ms cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+::view-transition-new(.nav-forward) {
+  animation: route-forward-enter 300ms cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+::view-transition-old(.nav-back) {
+  animation: route-back-exit 260ms cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+::view-transition-new(.nav-back) {
+  animation: route-back-enter 300ms cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 
 .app-header-anchor {
@@ -126,25 +142,65 @@
   display: none;
 }
 
-@keyframes route-exit {
+@keyframes route-section-exit {
   from {
     opacity: 1;
-    transform: translateY(0) scale(1);
   }
   to {
     opacity: 0;
-    transform: translateY(-4px) scale(0.995);
   }
 }
 
-@keyframes route-enter {
+@keyframes route-section-enter {
   from {
     opacity: 0;
-    transform: translateY(8px) scale(0.995);
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes route-forward-exit {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    opacity: 0.82;
+    transform: translate3d(-42px, 0, 0);
+  }
+}
+
+@keyframes route-forward-enter {
+  from {
+    opacity: 0.88;
+    transform: translate3d(42px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes route-back-exit {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    opacity: 0.82;
+    transform: translate3d(46px, 0, 0);
+  }
+}
+
+@keyframes route-back-enter {
+  from {
+    opacity: 0.88;
+    transform: translate3d(-46px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
   }
 }
 
@@ -162,6 +218,68 @@
 
 .page-animate {
   animation: page-enter 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.sc-route-content .page-animate {
+  animation: app-section-fade-in 190ms ease-out both;
+}
+
+.sc-section-content-enter {
+  animation: app-section-content-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.sc-list-loading {
+  display: grid;
+  gap: 0;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #e5e5ea;
+  border-radius: 20px;
+  box-shadow: 0 1px 2px rgba(60, 60, 67, 0.04);
+}
+
+.sc-loading-row {
+  display: block;
+  height: 68px;
+  margin-inline-start: 16px;
+  border-bottom: 1px solid #f2f2f7;
+  background:
+    linear-gradient(90deg, rgba(118, 118, 128, 0.08), rgba(118, 118, 128, 0.14), rgba(118, 118, 128, 0.08))
+    0 50% / 220% 14px no-repeat;
+  animation: sc-loading-soft-pulse 1100ms ease-in-out infinite;
+}
+
+.sc-loading-row:last-child {
+  border-bottom: 0;
+}
+
+@keyframes app-section-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes app-section-content-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 6px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes sc-loading-soft-pulse {
+  from {
+    background-position-x: 140%;
+  }
+  to {
+    background-position-x: -80%;
+  }
 }
 
 /* StefyCloud iOS 26 visual shell, adapted from design/stefycloud-ios26-dashboard-source.html */
@@ -626,8 +744,8 @@
   color: #1a1a1a;
   font-size: clamp(1.55rem, 1.12rem + 0.95vw, 1.86rem);
   font-weight: 750;
-  line-height: 1.1;
-  letter-spacing: -1px;
+  line-height: 1.18;
+  letter-spacing: -0.65px;
 }
 
 .sc-toolbar-title p {
@@ -951,6 +1069,10 @@
   animation: sc-item-menu-in 160ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+.sc-item-actions-popover-closing {
+  animation: sc-item-menu-out 150ms ease both;
+}
+
 .sc-item-action {
   display: flex;
   align-items: center;
@@ -1050,6 +1172,17 @@
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes sc-item-menu-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
   }
 }
 
@@ -1551,6 +1684,56 @@
   margin: 0;
 }
 
+.sc-images-stage {
+  position: relative;
+  min-height: 220px;
+}
+
+.sc-images-loading-state {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  min-height: 220px;
+  place-items: center;
+  border-radius: 20px;
+  opacity: 1;
+  pointer-events: none;
+  transition: opacity 180ms ease;
+}
+
+.sc-images-loading-state-hidden {
+  opacity: 0;
+}
+
+.sc-images-spinner {
+  width: 34px;
+  height: 34px;
+  border: 3px solid rgba(0, 136, 255, 0.16);
+  border-top-color: #0088ff;
+  border-radius: 999px;
+  animation: sc-images-spin 850ms linear infinite;
+}
+
+.sc-images-grid {
+  opacity: 0;
+  transform: translate3d(0, 4px, 0);
+  transition:
+    opacity 220ms cubic-bezier(0.22, 1, 0.36, 1) 80ms,
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1) 80ms;
+}
+
+.sc-images-grid-ready {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+@keyframes sc-images-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .sc-mobile-nav-shell,
 .sc-mobile-tabbar {
   display: none;
@@ -1733,6 +1916,7 @@
     pointer-events: none;
     /* Promote to GPU compositing layer to prevent iOS Safari position:fixed
        jank when the URL bar shows/hides and during View Transitions. */
+    backface-visibility: hidden;
     -webkit-transform: translateZ(0);
     transform: translateZ(0);
   }
@@ -1746,10 +1930,14 @@
     height: 62px;
     min-width: 0;
     padding: 5px;
-    background: rgba(250, 250, 252, 0.82);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(246, 247, 250, 0.78));
     border: 1px solid rgba(255, 255, 255, 0.82);
     border-radius: 999px;
-    box-shadow: 0 10px 30px rgba(31, 48, 72, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.86);
+    box-shadow:
+      0 18px 42px rgba(31, 48, 72, 0.2),
+      0 6px 14px rgba(31, 48, 72, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.92),
+      inset 0 -1px 0 rgba(60, 60, 67, 0.05);
     backdrop-filter: blur(24px) saturate(160%);
     -webkit-backdrop-filter: blur(24px) saturate(160%);
     /* overflow:hidden removed — border-radius already provides visual clipping
@@ -1766,9 +1954,6 @@
     border-radius: 999px;
     transform: translateX(-120%);
     transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
-    /* Promote pill indicator to compositor layer so it animates
-       independently of main-thread paints during navigations. */
-    will-change: transform;
   }
 
   .sc-mobile-tabbar-active-0::before {
@@ -1802,10 +1987,10 @@
     border-radius: 999px;
     font-size: 0.76rem;
     font-weight: 650;
-    line-height: 1;
+    line-height: 1.18;
     letter-spacing: -0.12px;
     text-decoration: none;
-    transition: color 160ms ease, background-color 160ms ease, transform 160ms ease;
+    transition: color 160ms ease, background-color 160ms ease;
   }
 
   .sc-mobile-tabbar a svg {
@@ -1813,12 +1998,15 @@
     width: 26px;
     height: 26px;
     flex: 0 0 26px;
+    transform-origin: center;
+    transition: transform 160ms ease;
   }
 
   .sc-mobile-tabbar a span {
     display: block;
     overflow: hidden;
     max-width: 100%;
+    padding-block: 1px 2px;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
@@ -1827,9 +2015,9 @@
     color: #111111;
   }
 
-  .sc-mobile-tabbar a:active,
-  .sc-mobile-search-button:active {
-    transform: scale(0.96);
+  .sc-mobile-tabbar a:active svg,
+  .sc-mobile-search-button:active svg {
+    transform: scale(0.9);
   }
 
   .sc-mobile-search-button {
@@ -1839,15 +2027,24 @@
     height: 62px;
     flex: 0 0 62px;
     color: #111111;
-    background: rgba(250, 250, 252, 0.86);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(246, 247, 250, 0.8));
     border: 1px solid rgba(255, 255, 255, 0.82);
     border-radius: 999px;
-    box-shadow: 0 10px 30px rgba(31, 48, 72, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.86);
+    box-shadow:
+      0 18px 42px rgba(31, 48, 72, 0.2),
+      0 6px 14px rgba(31, 48, 72, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.92),
+      inset 0 -1px 0 rgba(60, 60, 67, 0.05);
     backdrop-filter: blur(24px) saturate(160%);
     -webkit-backdrop-filter: blur(24px) saturate(160%);
     pointer-events: auto;
     text-decoration: none;
-    transition: transform 160ms ease, background-color 160ms ease;
+    transition: background-color 160ms ease;
+  }
+
+  .sc-mobile-search-button svg {
+    transform-origin: center;
+    transition: transform 160ms ease;
   }
 
   .sc-mobile-search-button:hover,

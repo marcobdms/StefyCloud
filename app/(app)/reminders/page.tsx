@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Bell, BellRing, Circle, CheckCircle2, X } from "lucide-react";
@@ -185,13 +185,14 @@ function RemindersPageContent() {
   const { toggleFavorite, isFavorite } = useFavorites();
   const push = usePushNotifications();
   const searchParams = useSearchParams();
-  const [showForm, setShowForm] = useState(false);
-
-  useEffect(() => {
-    if (searchParams.get("new") === "1") {
-      setShowForm(true);
-    }
-  }, [searchParams]);
+  const queryKey = searchParams.toString();
+  const showFormFromUrl = searchParams.get("new") === "1";
+  const [formState, setFormState] = useState(() => ({
+    source: queryKey,
+    visible: showFormFromUrl,
+  }));
+  const showForm = formState.source === queryKey ? formState.visible : showFormFromUrl;
+  const setShowForm = (visible: boolean) => setFormState({ source: queryKey, visible });
 
   const groups: ReminderGroup[] = ["today", "tomorrow", "upcoming"];
   const grouped = groups

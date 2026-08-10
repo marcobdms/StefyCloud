@@ -17,7 +17,23 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <section className="sc-main">
           <Header />
           <main id="main-content" className="sc-route-content">
-            <ViewTransition default="page-transition">{children}</ViewTransition>
+            <ViewTransition
+              enter={{
+                "section-nav": "section-nav",
+                "nav-forward": "nav-forward",
+                "nav-back": "nav-back",
+                default: "none",
+              }}
+              exit={{
+                "section-nav": "section-nav",
+                "nav-forward": "nav-forward",
+                "nav-back": "nav-back",
+                default: "none",
+              }}
+              default="none"
+            >
+              {children}
+            </ViewTransition>
           </main>
         </section>
         <BottomNav />

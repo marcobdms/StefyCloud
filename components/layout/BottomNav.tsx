@@ -1,6 +1,6 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useRef } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { File, FileText, House, Image, Search } from "lucide-react";
@@ -29,11 +29,14 @@ function getActiveIndex(pathname: string) {
 const BottomNav = memo(function BottomNav() {
   const pathname = usePathname();
   const activeIndex = getActiveIndex(pathname);
+  const lastActiveIndexRef = useRef(0);
+  if (activeIndex >= 0) lastActiveIndexRef.current = activeIndex;
+  const indicatorIndex = activeIndex >= 0 ? activeIndex : lastActiveIndexRef.current;
 
   return (
-    <nav aria-label="Navegación móvil" className="sc-mobile-nav-shell safe-bottom">
+    <nav aria-label="Navegación móvil" className="sc-mobile-nav-shell app-nav-anchor safe-bottom">
       <div
-        className={`sc-mobile-tabbar ${activeIndex >= 0 ? `sc-mobile-tabbar-active-${activeIndex}` : ""}`}
+        className={`sc-mobile-tabbar sc-mobile-tabbar-active-${indicatorIndex}`}
       >
         {navItems.map(({ href, label, icon: Icon }) => {
           const isActive = pathname === href || pathname.startsWith(`${href}/`);

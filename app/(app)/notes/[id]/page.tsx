@@ -55,7 +55,7 @@ export default function NoteEditorPage({ params }: { params: Promise<{ id: strin
 
   const handleDelete = () => {
     deleteNote(id);
-    router.replace("/notes");
+    router.replace("/notes", { transitionTypes: ["nav-back"] });
   };
 
   if (!loaded) return null;

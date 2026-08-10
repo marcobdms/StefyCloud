@@ -77,8 +77,6 @@ export default function DocumentsPage() {
     event.target.value = "";
   };
 
-  if (!loaded) return null;
-
   return (
     <div className="page-animate pt-2">
       <input
@@ -102,8 +100,14 @@ export default function DocumentsPage() {
       )}
       {uploading && <p className="mt-3 text-sm text-[#6e6e73]">Subiendo documento...</p>}
 
-      {filtered.length === 0 ? (
-        <div className="mt-4">
+      {!loaded ? (
+        <div className="sc-list-loading mt-4" aria-label="Cargando documentos" aria-busy="true">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <span key={index} className="sc-loading-row" />
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="sc-section-content-enter mt-4">
           <EmptyState
             icon={File}
             title={search ? "Sin resultados" : "Sin documentos"}
@@ -111,7 +115,7 @@ export default function DocumentsPage() {
           />
         </div>
       ) : (
-        <div className="mt-4 bg-white rounded-[20px] border border-[#e5e5ea] shadow-sm overflow-visible">
+        <div className="sc-section-content-enter mt-4 bg-white rounded-[20px] border border-[#e5e5ea] shadow-sm overflow-visible">
           {filtered.map((doc, index) => {
             const favorite = isFavorite("document", doc.id);
             const canPreview = doc.type === "pdf";

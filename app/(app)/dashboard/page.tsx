@@ -10,12 +10,12 @@ import {
   CheckCheck,
   ChevronRight,
   Columns3,
-  Ellipsis,
   File,
   FileText,
   Files,
   Image,
   ImagePlus,
+  LogOut,
   NotebookPen,
   Plus,
   SquarePen,
@@ -167,7 +167,7 @@ export default function DashboardPage() {
     if (!file) return;
 
     const uploaded = await addImage(file);
-    if (uploaded) router.push("/images");
+    if (uploaded) router.push("/images", { transitionTypes: ["section-nav"] });
   };
 
   const handlePdfFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -176,18 +176,18 @@ export default function DashboardPage() {
     if (!file) return;
 
     const uploaded = await addDocument(file);
-    if (uploaded) router.push("/documents");
+    if (uploaded) router.push("/documents", { transitionTypes: ["section-nav"] });
   };
 
   const handleCreateNote = async () => {
     closeNewModal();
     const note = await createNote();
-    if (note?.id) router.push(`/notes/${note.id}`);
+    if (note?.id) router.push(`/notes/${note.id}`, { transitionTypes: ["nav-forward"] });
   };
 
   const handleOpenReminderForm = () => {
     closeNewModal();
-    router.push("/reminders?new=1");
+    router.push("/reminders?new=1", { transitionTypes: ["section-nav"] });
   };
 
   const pendingReminders = reminders.filter((reminder) => !reminder.completed).length;
@@ -294,7 +294,7 @@ export default function DashboardPage() {
             <Trash2 size={17} aria-hidden="true" />
           </Link>
           <button className="sc-control-pill sc-control-pill-icon sc-overview-control" type="button" onClick={logout} aria-label="Cerrar sesión">
-            <Ellipsis size={18} aria-hidden="true" />
+            <LogOut size={17} color="#ff3b30" aria-hidden="true" />
           </button>
         </div>
       </div>

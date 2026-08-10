@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Camera, ImageIcon, X } from "lucide-react";
 import { useImages } from "@/hooks/useImages";
@@ -8,36 +8,83 @@ import SearchBar from "@/components/common/SearchBar";
 import EmptyState from "@/components/common/EmptyState";
 import FloatingButton from "@/components/common/FloatingButton";
 import SectionTitle from "@/components/common/SectionTitle";
+import type { CloudImage } from "@/types";
 
-/** Placeholder grid shown while images are fetching.
- *  Renders immediately so the View Transition paints content
- *  without waiting for the network request to complete. */
-function ImagesSkeleton() {
+const INITIAL_IMAGE_READY_COUNT = 12;
+
+function ImageSectionLoader({ hidden }: { hidden: boolean }) {
   return (
     <div
-      className="mt-4 grid grid-cols-3 gap-1.5"
-      aria-label="Cargando imágenes"
-      aria-busy="true"
+      className={`sc-images-loading-state ${hidden ? "sc-images-loading-state-hidden" : ""}`}
+      role={hidden ? undefined : "status"}
+      aria-live="polite"
+      aria-hidden={hidden || undefined}
     >
-      {Array.from({ length: 9 }).map((_, i) => (
-        <div
-          key={i}
-          className="aspect-square rounded-xl animate-pulse bg-[rgba(118,118,128,0.10)]"
-        />
-      ))}
+      <span className="sc-images-spinner" aria-hidden="true" />
+      <span className="sr-only">Cargando imágenes...</span>
     </div>
+  );
+}
+
+function ImageTile({
+  image,
+  priority,
+  onReady,
+}: {
+  image: CloudImage;
+  priority: boolean;
+  onReady: (id: string) => void;
+}) {
+  const imageRef = useRef<HTMLImageElement>(null);
+  const markReady = useCallback(() => onReady(image.id), [image.id, onReady]);
+
+  useEffect(() => {
+    if (imageRef.current?.complete) markReady();
+  }, [markReady]);
+
+  return (
+    <Link
+      href={`/images/${image.id}`}
+      transitionTypes={["nav-forward"]}
+      className="relative aspect-square rounded-xl overflow-hidden bg-[#f5f5f7] p-1.5 transition-[transform,opacity,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:-translate-y-0.5 focus-visible:shadow-md active:translate-y-0 active:scale-[0.98] active:opacity-80"
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        ref={imageRef}
+        src={image.thumbnail}
+        alt={image.title}
+        loading={priority ? "eager" : "lazy"}
+        decoding="async"
+        onLoad={markReady}
+        onError={markReady}
+        className="h-full w-full rounded-lg object-contain"
+      />
+    </Link>
   );
 }
 
 export default function ImagesPage() {
   const { images, loaded, uploading, error, clearError, addImage } = useImages();
   const [search, setSearch] = useState("");
+  const [readyImageIds, setReadyImageIds] = useState<Set<string>>(() => new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const filtered = images.filter((img) =>
     img.title.toLowerCase().includes(search.toLowerCase())
   );
+  const readyTargetIds = filtered.slice(0, INITIAL_IMAGE_READY_COUNT).map((img) => img.id);
+  const hasImages = loaded && filtered.length > 0;
+  const imagesReady = hasImages && readyTargetIds.every((id) => readyImageIds.has(id));
+
+  const markImageReady = useCallback((id: string) => {
+    setReadyImageIds((current) => {
+      if (current.has(id)) return current;
+      const next = new Set(current);
+      next.add(id);
+      return next;
+    });
+  }, []);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -86,7 +133,9 @@ export default function ImagesPage() {
       {uploading && <p className="mt-3 text-sm text-[#6e6e73]">Subiendo imagen...</p>}
 
       {!loaded ? (
-        <ImagesSkeleton />
+        <div className="sc-images-stage mt-4 min-h-[220px]">
+          <ImageSectionLoader hidden={false} />
+        </div>
       ) : filtered.length === 0 ? (
         <div className="mt-4">
           <EmptyState
@@ -96,23 +145,18 @@ export default function ImagesPage() {
           />
         </div>
       ) : (
-        <div className="mt-4 grid grid-cols-3 gap-1.5">
-          {filtered.map((img) => (
-            <Link
-              key={img.id}
-              href={`/images/${img.id}`}
-              className="relative aspect-square rounded-xl overflow-hidden bg-[#f5f5f7] p-1.5 transition-[transform,opacity,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:-translate-y-0.5 focus-visible:shadow-md active:translate-y-0 active:scale-[0.98] active:opacity-80"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={img.thumbnail}
-                alt={img.title}
-                loading="lazy"
-                decoding="async"
-                className="h-full w-full rounded-lg object-contain"
+        <div className="sc-images-stage mt-4" aria-busy={!imagesReady}>
+          <ImageSectionLoader hidden={imagesReady} />
+          <div className={`sc-images-grid grid grid-cols-3 gap-1.5 ${imagesReady ? "sc-images-grid-ready" : ""}`}>
+            {filtered.map((img, index) => (
+              <ImageTile
+                key={img.id}
+                image={img}
+                priority={index < INITIAL_IMAGE_READY_COUNT}
+                onReady={markImageReady}
               />
-            </Link>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 

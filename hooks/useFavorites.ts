@@ -33,7 +33,13 @@ export function useFavorites() {
   };
 
   useEffect(() => {
-    void fetchFavorites();
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) void fetchFavorites();
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const getFavorite = (itemType: TrashItemType, itemId: string) =>

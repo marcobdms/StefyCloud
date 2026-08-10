@@ -46,7 +46,7 @@ export default function ReminderDetailPage({ params }: { params: Promise<{ id: s
           Recordatorios
         </button>
         <button
-          onClick={() => { deleteReminder(id); router.replace("/reminders"); }}
+          onClick={() => { deleteReminder(id); router.replace("/reminders", { transitionTypes: ["nav-back"] }); }}
           className="text-[#FF3B30] active:opacity-60 transition-opacity"
           aria-label="Eliminar"
         >

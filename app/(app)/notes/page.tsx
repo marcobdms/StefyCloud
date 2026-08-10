@@ -35,18 +35,22 @@ export default function NotesPage() {
 
   const handleNew = async () => {
     const note = await createNote();
-    if (note) router.push(`/notes/${note.id}`);
+    if (note) router.push(`/notes/${note.id}`, { transitionTypes: ["nav-forward"] });
   };
-
-  if (!loaded) return null;
 
   return (
     <div className="page-animate pt-2">
       <SectionTitle title="Notas" />
       <SearchBar value={search} onChange={setSearch} placeholder="Buscar notas..." />
 
-      {filtered.length === 0 ? (
-        <div className="mt-4">
+      {!loaded ? (
+        <div className="sc-list-loading mt-4" aria-label="Cargando notas" aria-busy="true">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <span key={index} className="sc-loading-row" />
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="sc-section-content-enter mt-4">
           <EmptyState
             icon={StickyNote}
             title={search ? "Sin resultados" : "Sin notas"}
@@ -54,7 +58,7 @@ export default function NotesPage() {
           />
         </div>
       ) : (
-        <div className="mt-4 bg-white rounded-[20px] border border-[#e5e5ea] shadow-sm overflow-visible">
+        <div className="sc-section-content-enter mt-4 bg-white rounded-[20px] border border-[#e5e5ea] shadow-sm overflow-visible">
           {filtered.map((note, i) => {
             const favorite = isFavorite("note", note.id);
 

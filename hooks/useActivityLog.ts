@@ -22,7 +22,13 @@ export function useActivityLog(limit = 5) {
   }, [limit]);
 
   useEffect(() => {
-    void fetchActivity();
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) void fetchActivity();
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [fetchActivity]);
 
   return { activity, loaded, refreshActivity: fetchActivity };

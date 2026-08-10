@@ -70,7 +70,7 @@ export default function ImageViewerPage({ params }: { params: Promise<{ id: stri
                 setConfirmingDelete(true);
                 return;
               }
-              if (await deleteImage(id)) router.replace("/images");
+              if (await deleteImage(id)) router.replace("/images", { transitionTypes: ["nav-back"] });
             }}
             disabled={deletingId === id}
             className="flex min-h-11 min-w-11 items-center justify-center rounded-full px-3 text-[#FF3B30] transition-[background-color,opacity] hover:bg-[#ffebe9] focus-visible:bg-[#ffebe9] active:opacity-60 disabled:opacity-40"

@@ -63,7 +63,7 @@ export default function Sidebar() {
   const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const query = search.trim();
-    router.push(query ? `/search?q=${encodeURIComponent(query)}` : "/search");
+    router.push(query ? `/search?q=${encodeURIComponent(query)}` : "/search", { transitionTypes: ["section-nav"] });
   };
 
   return (
