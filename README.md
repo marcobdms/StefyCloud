@@ -1,99 +1,41 @@
 # Stefany Cloud
 
-Nube personal construida con Next.js y FastAPI. Incluye notas, imágenes,
-documentos, recordatorios y notificaciones Web Push.
+> Nube personal para organizar notas, documentos, imágenes y recordatorios desde una única aplicación web.
 
-## Desarrollo local
+![Frontend](https://img.shields.io/badge/Frontend-Next.js_16_+_React_19-000000?style=flat-square)
+![Backend](https://img.shields.io/badge/Backend-FastAPI-009688?style=flat-square)
+![Database](https://img.shields.io/badge/Database-PostgreSQL_+_SQLite-336791?style=flat-square)
+![PWA](https://img.shields.io/badge/App-PWA-5A0FC8?style=flat-square)
 
-Instala las dependencias de ambos entornos:
+---
 
-```bash
-npm ci
-cd backend
-python -m venv .venv
-. .venv/bin/activate
-pip install -r requirements.txt
-cd ..
-```
+## ¿Qué hace Stefany Cloud?
 
-Después, un único comando levanta el frontend en el puerto `3000` y la API de
-Stefany Cloud en el `8001`, con los prefijos `[FRONT]` y `[BACK]`:
+Stefany Cloud es una nube personal que permite:
 
-```bash
-npm run dev
-```
+- Crear y organizar notas
+- Guardar documentos e imágenes
+- Programar recordatorios con notificaciones Web Push
+- Marcar contenido como favorito
+- Buscar archivos y recuperar elementos desde la papelera
+- Instalar la aplicación como PWA en dispositivos compatibles
 
-Variables mínimas del frontend:
+---
 
-```dotenv
-NEXT_PUBLIC_API_URL=http://localhost:8001/api
-JWT_SECRET_KEY=<same-jwt-secret-as-backend>
-```
+## Stack tecnológico
 
-El puerto `8001` mantiene esta API aislada de otros proyectos locales que
-puedan estar usando el `8000`.
+| Capa | Tecnología |
+| --- | --- |
+| Frontend | Next.js 16, React 19 y TypeScript |
+| Estilos | Tailwind CSS 4 |
+| Backend API | FastAPI y Python |
+| Persistencia | SQLAlchemy con PostgreSQL o SQLite |
+| Autenticación | JWT |
+| Notificaciones | Web Push, VAPID y APScheduler |
+| Infraestructura | Vercel y Coolify |
 
-Variables del backend:
+---
 
-```dotenv
-DATABASE_URL=sqlite:///./stefany_cloud.db
-APP_PASSWORD=<app-password>
-JWT_SECRET_KEY=<jwt-secret>
-FRONTEND_URL=http://localhost:3000
-VAPID_PUBLIC_KEY=<vapid-public-key>
-VAPID_PRIVATE_KEY=<vapid-private-key>
-VAPID_EMAIL=<contact-email>
-DEFAULT_TIMEZONE=America/Caracas
-REMINDER_GRACE_MINUTES=15
-UPLOAD_DIR=uploads
-MAX_UPLOAD_BYTES=26214400
-```
+## Licencia
 
-Los recordatorios nuevos guardan la zona IANA enviada por el dispositivo.
-`DEFAULT_TIMEZONE` solo se usa como respaldo para recordatorios antiguos que
-todavía no tengan zona.
-
-## Pruebas
-
-```bash
-PYTHONPATH=backend python -m unittest discover -s backend/tests
-npm run lint
-npm run build
-```
-
-## Despliegue
-
-### Vercel
-
-La aplicación obtiene `VAPID_PUBLIC_KEY` directamente de la API al activar las
-notificaciones. Así no hay una segunda copia de la clave en Vercel que pueda
-quedar desactualizada. Debe ser la pareja exacta de `VAPID_PRIVATE_KEY` en
-Coolify.
-
-### Coolify
-
-Los cambios del backend requieren un redeploy. Al arrancar, la API aplica una
-migración aditiva que incorpora las columnas de notificaciones; no elimina ni
-recrea la tabla `notes`.
-
-Antes de desplegar, comprobar `DATABASE_URL`:
-
-- Una URL de PostgreSQL apunta a una base externa y el redeploy del contenedor
-  no debería borrar las notas.
-- Con SQLite, el archivo de la URL debe estar dentro de un volumen persistente
-  de Coolify. Sin ese volumen, un redeploy puede borrar la base completa.
-
-Los archivos siguen guardándose en `UPLOAD_DIR`. Mientras no se use un bucket,
-esa carpeta también necesita un volumen persistente para sobrevivir a un
-redeploy.
-
-El scheduler está pensado para una sola réplica del backend. Si se escala a
-varias réplicas, debe moverse a un worker único.
-
-## Activar notificaciones en iPhone
-
-1. Añadir Stefany Cloud a la pantalla de inicio.
-2. Abrir la aplicación desde ese icono.
-3. Iniciar sesión y entrar en Recordatorios.
-4. Activar el toggle `Notificaciones`.
-5. Aceptar el permiso de iOS.
+Distribuido bajo la licencia [GNU AGPL v3](LICENSE).
