@@ -426,23 +426,20 @@ export default function DashboardPage() {
             aria-labelledby="sc-new-action-title"
           >
             <div className="sc-action-modal-head">
-              <div>
-                <p id="sc-new-action-title">Nuevo</p>
-                <span>Elige qué quieres añadir</span>
-              </div>
+              <p id="sc-new-action-title">Añadir</p>
               <button
                 className="sc-action-modal-close"
                 type="button"
                 onClick={closeNewModal}
-                aria-label="Cerrar menú de nuevo"
+                aria-label="Cerrar menú"
               >
                 <X size={18} aria-hidden="true" />
               </button>
             </div>
 
-            <div className="sc-action-modal-list">
+            <div className="sc-action-modal-grid">
               <button
-                className="sc-action-modal-row"
+                className="sc-action-modal-cell"
                 type="button"
                 onClick={() => {
                   closeNewModal();
@@ -450,13 +447,12 @@ export default function DashboardPage() {
                 }}
               >
                 <span className="sc-action-modal-icon sc-action-modal-icon-image">
-                  <Camera size={19} aria-hidden="true" />
+                  <Camera size={22} aria-hidden="true" />
                 </span>
                 <span>Tomar foto</span>
-                <ChevronRight size={17} aria-hidden="true" />
               </button>
               <button
-                className="sc-action-modal-row"
+                className="sc-action-modal-cell"
                 type="button"
                 onClick={() => {
                   closeNewModal();
@@ -464,34 +460,31 @@ export default function DashboardPage() {
                 }}
               >
                 <span className="sc-action-modal-icon sc-action-modal-icon-doc">
-                  <File size={19} aria-hidden="true" />
+                  <File size={22} aria-hidden="true" />
                 </span>
                 <span>Subir PDF</span>
-                <ChevronRight size={17} aria-hidden="true" />
               </button>
               <button
-                className="sc-action-modal-row"
+                className="sc-action-modal-cell"
                 type="button"
                 onClick={() => {
                   void handleCreateNote();
                 }}
               >
                 <span className="sc-action-modal-icon sc-action-modal-icon-note">
-                  <SquarePen size={19} aria-hidden="true" />
+                  <SquarePen size={22} aria-hidden="true" />
                 </span>
-                <span>Añadir nota</span>
-                <ChevronRight size={17} aria-hidden="true" />
+                <span>Nueva nota</span>
               </button>
               <button
-                className="sc-action-modal-row"
+                className="sc-action-modal-cell"
                 type="button"
                 onClick={handleOpenReminderForm}
               >
                 <span className="sc-action-modal-icon sc-action-modal-icon-reminder">
-                  <Bell size={19} aria-hidden="true" />
+                  <Bell size={22} aria-hidden="true" />
                 </span>
-                <span>Añadir recordatorio</span>
-                <ChevronRight size={17} aria-hidden="true" />
+                <span>Recordatorio</span>
               </button>
             </div>
           </div>
