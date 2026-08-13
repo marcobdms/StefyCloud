@@ -12,9 +12,11 @@ from .migrations import apply_compatibility_migrations
 from .reminder_scheduler import process_due_reminders
 from .storage import UPLOAD_DIR
 from .trash_utils import cleanup_expired_trash
+from .backup_utils import run_scheduled_backup
 from .routers import notes, reminders, documents, images, trash, favorites
 from .routers import auth as auth_router
 from .routers import push as push_router
+from .routers import backup as backup_router
 from .auth import decode_token
 
 # Crear las tablas en la base de datos
@@ -56,6 +58,14 @@ async def lifespan(app: FastAPI):
         coalesce=True,
         max_instances=1,
     )
+    scheduler.add_job(
+        run_scheduled_backup,
+        "interval",
+        days=10,
+        coalesce=True,
+        max_instances=1,
+        id="auto_backup",
+    )
     scheduler.start()
     try:
         yield
@@ -93,6 +103,7 @@ app.include_router(documents.router, dependencies=[Depends(require_auth)])
 app.include_router(images.router, dependencies=[Depends(require_auth)])
 app.include_router(trash.router, dependencies=[Depends(require_auth)])
 app.include_router(favorites.router, dependencies=[Depends(require_auth)])
+app.include_router(backup_router.router)
 
 @app.get("/")
 def read_root():

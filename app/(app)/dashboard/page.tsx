@@ -13,6 +13,7 @@ import {
   File,
   FileText,
   Files,
+  HardDriveDownload,
   Image,
   ImagePlus,
   LogOut,
@@ -21,6 +22,7 @@ import {
   SquarePen,
   Star,
   Trash2,
+  UploadCloud,
   X,
 } from "lucide-react";
 import { useActivityLog } from "@/hooks/useActivityLog";
@@ -82,10 +84,15 @@ export default function DashboardPage() {
   const { images, addImage } = useImages();
   const { reminders } = useReminders();
   const { activity } = useActivityLog(4);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
+  const restoreInputRef = useRef<HTMLInputElement>(null);
+
   const logout = () => {
     fetch(`${API_URL}/auth/logout`, { method: "POST", headers: getAuthHeaders() }).catch(() => { });
     clearAuthCookie();
   };
+
 
   const openNewModal = useCallback(() => {
     if (closeTimerRef.current) {
@@ -113,6 +120,71 @@ export default function DashboardPage() {
       closeTimerRef.current = null;
     }, 180);
   }, []);
+
+  const handleDownloadBackup = useCallback(async () => {
+    if (isDownloading) return;
+    closeNewModal();
+    setIsDownloading(true);
+    try {
+      // Descargar al navegador y enviar a Telegram en paralelo
+      const [res] = await Promise.all([
+        fetch(`${API_URL}/backup/download`, { headers: getAuthHeaders() }),
+        fetch(`${API_URL}/backup/upload-now`, { method: "POST", headers: getAuthHeaders() }),
+      ]);
+      if (!res.ok) throw new Error("Error generando backup");
+      const blob = await res.blob();
+      const date = new Date().toISOString().slice(0, 10);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `stefany-cloud-backup-${date}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("[Backup] Error:", err);
+    } finally {
+      setIsDownloading(false);
+    }
+  }, [isDownloading, closeNewModal]);
+
+  const handleRestoreBackup = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Reset input so the same file can be reselected if needed
+    e.target.value = "";
+
+    closeNewModal();
+    setIsRestoring(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch(`${API_URL}/backup/restore`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: formData,
+      });
+      const data = await res.json() as { ok: boolean; restored?: Record<string, number>; skipped?: Record<string, number>; detail?: string };
+      if (!res.ok || !data.ok) {
+        console.error("[Restore] Error:", data.detail ?? "Error desconocido");
+        alert(`Error al restaurar: ${data.detail ?? "Error desconocido"}`);
+        return;
+      }
+      const r = data.restored ?? {};
+      const summary = [
+        r.notes && `${r.notes} notas`,
+        r.images && `${r.images} imágenes`,
+        r.documents && `${r.documents} documentos`,
+        r.reminders && `${r.reminders} recordatorios`,
+        r.uploads && `${r.uploads} archivos`,
+      ].filter(Boolean).join(", ");
+      alert(`✅ Copia restaurada correctamente.\n${summary || "Sin elementos nuevos que restaurar."}`);
+    } catch (err) {
+      console.error("[Restore] Error:", err);
+      alert("Error al restaurar la copia de seguridad.");
+    } finally {
+      setIsRestoring(false);
+    }
+  }, [closeNewModal]);
 
   useEffect(() => {
     isNewModalOpenRef.current = isNewModalOpen;
@@ -485,6 +557,37 @@ export default function DashboardPage() {
                   <Bell size={22} aria-hidden="true" />
                 </span>
                 <span>Recordatorio</span>
+              </button>
+              <button
+                className="sc-action-modal-cell"
+                type="button"
+                onClick={() => { void handleDownloadBackup(); }}
+                disabled={isDownloading || isRestoring}
+              >
+                <span className="sc-action-modal-icon" style={{ color: "#34c759", background: "rgba(52, 199, 89, 0.14)" }}>
+                  <HardDriveDownload size={22} aria-hidden="true" />
+                </span>
+                <span>{isDownloading ? "Generando…" : "Copia ahora"}</span>
+              </button>
+              {/* Input oculto para seleccionar ZIP de restauración */}
+              <input
+                ref={restoreInputRef}
+                type="file"
+                accept=".zip"
+                className="hidden"
+                onChange={(e) => { void handleRestoreBackup(e); }}
+                aria-label="Seleccionar archivo ZIP para restaurar"
+              />
+              <button
+                className="sc-action-modal-cell"
+                type="button"
+                onClick={() => restoreInputRef.current?.click()}
+                disabled={isRestoring || isDownloading}
+              >
+                <span className="sc-action-modal-icon" style={{ color: "#8e44ad", background: "rgba(142, 68, 173, 0.13)" }}>
+                  <UploadCloud size={22} aria-hidden="true" />
+                </span>
+                <span>{isRestoring ? "Restaurando…" : "Restaurar copia"}</span>
               </button>
             </div>
           </div>
